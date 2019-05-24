@@ -31,7 +31,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <mpi.h>
 #include "hdf5.h"
+#include "pnetcdf.h"
 
 /* Identifier for the pass-through VOL connector */
 #define H5VL_NCMPI  (H5VL_ncmpi_register())
@@ -43,11 +45,51 @@ H5_DLL hid_t H5VL_ncmpi_register(void);
 }
 #endif
 
-/* Characteristics of the pass-through VOL connector */
-#define H5VL_NCMPI_NAME        "PnetCDF"
-#define H5VL_NCMPI_VALUE        1026           /* VOL connector ID */
-#define H5VL_NCMPI_VERSION      1111
+#define CHECK_ERR { \
+    if (err != NC_NOERR) { \
+        printf("Error at line %d in %s: (%s)\n", \
+        __LINE__,__FILE__,ncmpi_strerrno(err)); \
+        return -1; \
+    } \
+}
 
+#define CHECK_ERRN { \
+    if (err != NC_NOERR) { \
+        printf("Error at line %d in %s: (%s)\n", \
+        __LINE__,__FILE__,ncmpi_strerrno(err)); \
+        return NULL; \
+    } \
+}
+
+#define CHECK_HERR { \
+    if (herr < 0) { \
+        printf("Error at line %d in %s:\n", \
+        __LINE__,__FILE__); \
+        H5Eprint1(stdout); \
+        return -1; \
+    } \
+}
+
+#define CHECK_HERRN { \
+    if (herr < 0) { \
+        printf("Error at line %d in %s:\n", \
+        __LINE__,__FILE__); \
+        H5Eprint1(stdout); \
+        return NULL; \
+    } \
+}
+
+#define RET_ERR(A) { \
+    printf("Error at line %d in %s: %s\n", \
+    __LINE__,__FILE__, A); \
+    return -1; \
+}
+
+#define RET_ERRN(A) { \
+    printf("Error at line %d in %s: %s\n", \
+    __LINE__,__FILE__, A); \
+    return NULL; \
+}
 /************/
 /* Typedefs */
 /************/
@@ -58,39 +100,44 @@ typedef struct H5VL_ncmpi_info_t {
 } H5VL_ncmpi_info_t;
 
 /* The pass through VOL info object */
-typedef struct H5VL_ncmpi_t {
-    //PNC Code starts
+typedef struct H5VL_ncmpi_file_t {
+    hid_t fcpl_id;
+    hid_t fapl_id;
+    hid_t dxpl_id;
+
     int ncid;
-    //PNC Code ends
-} H5VL_ncmpi_t;
+} H5VL_ncmpi_file_t;
 
-/********************* */
-/* Function prototypes */
-/********************* */
+/* The pass through VOL info object */
+typedef struct H5VL_ncmpi_dataset_t {
+    hid_t dcpl_id;
+    hid_t dapl_id;
+    hid_t dxpl_id;
 
-/* "Management" callbacks */
-herr_t H5VL_ncmpi_init(hid_t vipl_id);
-herr_t H5VL_ncmpi_term(void);
-void *H5VL_ncmpi_info_copy(const void *info);
-herr_t H5VL_ncmpi_info_cmp(int *cmp_value, const void *info1, const void *info2);
-herr_t H5VL_ncmpi_info_free(void *info);
-herr_t H5VL_ncmpi_info_to_str(const void *info, char **str);
-herr_t H5VL_ncmpi_str_to_info(const char *str, void **info);
-void *H5VL_ncmpi_get_object(const void *obj);
-herr_t H5VL_ncmpi_get_wrap_ctx(const void *obj, void **wrap_ctx);
-herr_t H5VL_ncmpi_free_wrap_ctx(void *obj);
-void *H5VL_ncmpi_wrap_object(void *obj, H5I_type_t obj_type, void *wrap_ctx);
-void *H5VL_ncmpi_unwrap_object(void *wrap_ctx);
+    int varid;
+    int ndim;
+    int *dimids;
+    
+    H5VL_ncmpi_file_t *fp;
+} H5VL_ncmpi_dataset_t;
 
-/* File callbacks */
-void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id, void **req);
-void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void **req);
-herr_t H5VL_ncmpi_file_get(void *file, H5VL_file_get_t get_type, hid_t dxpl_id, void **req, va_list arguments);
-herr_t H5VL_ncmpi_file_specific(void *file, H5VL_file_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments);
-herr_t H5VL_ncmpi_file_optional(void *file, hid_t dxpl_id, void **req, va_list arguments);
-herr_t H5VL_ncmpi_file_close(void *file, hid_t dxpl_id, void **req);
+/* The pass through VOL info object */
+typedef struct H5VL_ncmpi_attr_t {
+    hid_t dcpl_id;
+    hid_t dapl_id;
+    hid_t dxpl_id;
+
+    int attid;
+
+    H5VL_ncmpi_dataset_t * dt;
+    H5VL_ncmpi_file_t *fp;
+} H5VL_ncmpi_attr_t;
+
+extern MPI_Datatype h5t_to_mpi_type(hid_t type_id);
+extern nc_type h5t_to_nc_type(hid_t type_id);
 
 extern const H5VL_file_class_t H5VL_ncmpi_file_g;
+extern const H5VL_dataset_class_t H5VL_ncmpi_dataset_g;
 extern const H5VL_class_t H5VL_ncmpi_g;
 
 #endif

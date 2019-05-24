@@ -13,7 +13,8 @@ int main(int argc, char **argv) {
     char dataset_name[]="data";  
     hid_t file_id, datasetId, dataspaceId, file_space, memspace_id;
     hid_t pnc_fapl, pnc_vol_id;  
-    hsize_t dims[2], start[2], count[2];  
+    hsize_t dims[2], start[2], count[2];
+    int buf[N];
     H5VL_ncmpi_info_t pnc_vol_info;
 
     MPI_Init(&argc, &argv);
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
     // Create file
     file_id  = H5Fcreate(file_name, H5F_ACC_TRUNC, H5P_DEFAULT, pnc_fapl);     
 
-    /*
+    
     dims [0]    = np;
     dims [1]    = N;
     dataspaceId = H5Screate_simple(2, dims, NULL);   
@@ -51,13 +52,16 @@ int main(int argc, char **argv) {
     count[1] = N;
     H5Sselect_hyperslab(file_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
-    H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, H5P_DEFAULT, data);  
+    for(i = 0; i < N; i++){
+        buf[i] = rank + 1 + i;
+    }
+    H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, H5P_DEFAULT, buf);  
 
     H5Sclose(file_space);
     H5Sclose(memspace_id);
     H5Sclose(dataspaceId);  
     H5Dclose(datasetId);  
-    */
+    
 
     H5Fclose(file_id);
     

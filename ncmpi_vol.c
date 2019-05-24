@@ -1,11 +1,31 @@
 #include "ncmpi_vol.h"
 
+/* Characteristics of the pass-through VOL connector */
+#define H5VL_NCMPI_NAME        "PnetCDF"
+#define H5VL_NCMPI_VALUE        1026           /* VOL connector ID */
+#define H5VL_NCMPI_VERSION      1111
+
+/********************* */
+/* Function prototypes */
+/********************* */
+herr_t H5VL_ncmpi_init(hid_t vipl_id);
+herr_t H5VL_ncmpi_term(void);
+void *H5VL_ncmpi_info_copy(const void *info);
+herr_t H5VL_ncmpi_info_cmp(int *cmp_value, const void *info1, const void *info2);
+herr_t H5VL_ncmpi_info_free(void *info);
+herr_t H5VL_ncmpi_info_to_str(const void *info, char **str);
+herr_t H5VL_ncmpi_str_to_info(const char *str, void **info);
+void *H5VL_ncmpi_get_object(const void *obj);
+herr_t H5VL_ncmpi_get_wrap_ctx(const void *obj, void **wrap_ctx);
+herr_t H5VL_ncmpi_free_wrap_ctx(void *obj);
+void *H5VL_ncmpi_wrap_object(void *obj, H5I_type_t obj_type, void *wrap_ctx);
+void *H5VL_ncmpi_unwrap_object(void *wrap_ctx);
 
 /*******************/
 /* Local variables */
 /*******************/
 
-/* Pass through VOL connector class struct */
+/* PNC VOL connector class struct */
 const H5VL_class_t H5VL_ncmpi_g = {
     H5VL_NCMPI_VERSION,                          /* version      */
     (H5VL_class_value_t)H5VL_NCMPI_VALUE,        /* value        */
@@ -38,16 +58,7 @@ const H5VL_class_t H5VL_ncmpi_g = {
         NULL,                     /* optional */
         NULL                         /* close */
     },
-    {                                           /* dataset_cls */
-        NULL,                    /* create */
-        NULL,                      /* open */
-        NULL,                      /* read */
-        NULL,                     /* write */
-        NULL,                       /* get */
-        NULL,                  /* specific */
-        NULL,                  /* optional */
-        NULL                      /* close */
-    },
+    H5VL_ncmpi_dataset_g,
     {                                               /* datatype_cls */
         NULL,                   /* commit */
         NULL,                     /* open */
@@ -108,7 +119,7 @@ hid_t H5VL_NCMPI_g = H5I_INVALID_HID;
  */
 herr_t H5VL_ncmpi_init(hid_t vipl_id) {
 #ifdef ENABLE_LOGGING
-    printf("------- PASS THROUGH VOL INIT\n");
+    printf("------- PNC VOL INIT\n");
 #endif
 
     return(0);
@@ -129,7 +140,7 @@ herr_t H5VL_ncmpi_init(hid_t vipl_id) {
  */
 herr_t H5VL_ncmpi_term(void) {
 #ifdef ENABLE_LOGGING
-    printf("------- PASS THROUGH VOL TERM\n");
+    printf("------- PNC VOL TERM\n");
 #endif
 
     return(0);
@@ -150,10 +161,10 @@ void* H5VL_ncmpi_info_copy(const void *_info) {
     H5VL_ncmpi_info_t *new_info;
 
 #ifdef ENABLE_LOGGING
-    printf("------- PASS THROUGH VOL INFO Copy\n");
+    printf("------- PNC VOL INFO Copy\n");
 #endif
 
-    /* Allocate new VOL info struct for the pass through connector */
+    /* Allocate new VOL info struct for the PNC connector */
     new_info = (H5VL_ncmpi_info_t *)calloc(1, sizeof(H5VL_ncmpi_info_t));
 
     MPI_Comm_dup(info->comm, &(new_info->comm));
@@ -177,7 +188,7 @@ herr_t H5VL_ncmpi_info_cmp(int *cmp_value, const void *_info1, const void *_info
     const H5VL_ncmpi_info_t *info2 = (const H5VL_ncmpi_info_t *)_info2;
 
 #ifdef ENABLE_LOGGING
-    printf("------- PASS THROUGH VOL INFO Compare\n");
+    printf("------- PNC VOL INFO Compare\n");
 #endif
 
     /* Sanity checks */
@@ -204,13 +215,13 @@ herr_t H5VL_ncmpi_info_free(void *_info) {
     H5VL_ncmpi_info_t *info = (H5VL_ncmpi_info_t *)_info;
 
 #ifdef ENABLE_LOGGING
-    printf("------- PASS THROUGH VOL INFO Free\n");
+    printf("------- PNC VOL INFO Free\n");
 #endif
 
     /* Release MPI_Info */
     MPI_Comm_free(&(info->comm));
 
-    /* Free pass through info object itself */
+    /* Free PNC info object itself */
     free(info);
 
     return(0);
@@ -233,7 +244,7 @@ herr_t H5VL_ncmpi_info_to_str(const void *_info, char **str) {
     size_t under_vol_str_len = 0;
 
 #ifdef ENABLE_LOGGING
-    printf("------- PASS THROUGH VOL INFO To String\n");
+    printf("------- PNC VOL INFO To String\n");
 #endif
 
     return(0);
