@@ -75,8 +75,6 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     varp->dxpl_id = dxpl_id;
     varp->fp = fp;
 
-    err = ncmpi_redef(fp->ncid);
-
     varp->ndim = H5Sget_simple_extent_ndims(space_id);
     if (varp->ndim < 0)   RET_ERRN("ndim < 0")
 
@@ -378,6 +376,7 @@ herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxp
         default:
             RET_ERR("get_type not supported")
     } /* end switch */
+    
     return 0;
 } /* end H5VL_ncmpi_dataset_get() */
 

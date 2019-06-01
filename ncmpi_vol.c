@@ -48,16 +48,7 @@ const H5VL_class_t H5VL_ncmpi_g = {
         H5VL_ncmpi_unwrap_object,                  /* wrap_object  */
         H5VL_ncmpi_free_wrap_ctx,                /* free_wrap_ctx */
     },
-    {                                           /* attribute_cls */
-        NULL,                       /* create */
-        NULL,                         /* open */
-        NULL,                         /* read */
-        NULL,                        /* write */
-        NULL,                          /* get */
-        NULL,                     /* specific */
-        NULL,                     /* optional */
-        NULL                         /* close */
-    },
+    H5VL_ncmpi_attr_g,
     H5VL_ncmpi_dataset_g,
     {                                               /* datatype_cls */
         NULL,                   /* commit */

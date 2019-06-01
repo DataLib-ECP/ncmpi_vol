@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
     int rank, np;
     const char *file_name;  
     char dataset_name[]="data";  
-    hid_t file_id, datasetId, dataspaceId, file_space, memspace_id;
+    hid_t file_id, datasetId, dataspaceId, file_space, memspace_id, attid_f, attid_d;
     hid_t pnc_fapl, pnc_vol_id;  
     hsize_t dims[2], start[2], count[2];
     int buf[N];
@@ -38,7 +38,6 @@ int main(int argc, char **argv) {
 
     // Create file
     file_id  = H5Fcreate(file_name, H5F_ACC_TRUNC, H5P_DEFAULT, pnc_fapl);     
-
     
     dims [0]    = np;
     dims [1]    = N;
@@ -46,6 +45,9 @@ int main(int argc, char **argv) {
     datasetId   = H5Dcreate(file_id,dataset_name,H5T_NATIVE_INT,dataspaceId,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);  
     memspace_id = H5Screate_simple(1, dims + 1, NULL);
     file_space = H5Dget_space(datasetId);
+    attid_d = H5Acreate(datasetId, "Dataset_Att", H5T_NATIVE_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attid_f = H5Acreate(file_id, "File_Att", H5T_NATIVE_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
+
     start[0] = rank;
     start[1] = 0;
     count[0] = 1;
@@ -56,13 +58,46 @@ int main(int argc, char **argv) {
         buf[i] = rank + 1 + i;
     }
     H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, H5P_DEFAULT, buf);  
+    H5Awrite (attid_d, H5T_NATIVE_INT, buf);
+    H5Awrite (attid_f, H5T_NATIVE_INT, buf);
 
+    for(i = 0; i < N; i++){
+        buf[i] = 0;
+    }
+    H5Dread(datasetId, H5T_NATIVE_INT, memspace_id, file_space, H5P_DEFAULT, buf);  
+    for(i = 0; i < N; i++){
+        if (buf[i] != rank + 1 + i){
+            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);
+        }
+    }
+
+    for(i = 0; i < N; i++){
+        buf[i] = 0;
+    }
+    H5Aread(attid_d, H5T_NATIVE_INT, buf);
+    for(i = 0; i < N; i++){
+        if (buf[i] != rank + 1 + i){
+            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);
+        }
+    }
+
+    for(i = 0; i < N; i++){
+        buf[i] = 0;
+    }
+    H5Aread(attid_f, H5T_NATIVE_INT, buf);
+    for(i = 0; i < N; i++){
+        if (buf[i] != rank + 1 + i){
+            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);
+        }
+    }
+    
     H5Sclose(file_space);
     H5Sclose(memspace_id);
     H5Sclose(dataspaceId);  
+    H5Aclose(attid_d);
+    H5Aclose(attid_f);
     H5Dclose(datasetId);  
     
-
     H5Fclose(file_id);
     
     MPI_Finalize();

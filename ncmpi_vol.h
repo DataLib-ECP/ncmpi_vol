@@ -123,13 +123,19 @@ typedef struct H5VL_ncmpi_dataset_t {
 
 /* The pass through VOL info object */
 typedef struct H5VL_ncmpi_attr_t {
-    hid_t dcpl_id;
-    hid_t dapl_id;
+    hid_t acpl_id;
+    hid_t aapl_id;
     hid_t dxpl_id;
 
     int attid;
+    MPI_Offset size;
+    char *name;
+    int varid;
+    hsize_t *dims;
+    int ndim;
+    nc_type type;
 
-    H5VL_ncmpi_dataset_t * dt;
+    H5VL_ncmpi_dataset_t * dp;
     H5VL_ncmpi_file_t *fp;
 } H5VL_ncmpi_attr_t;
 
@@ -138,6 +144,7 @@ extern nc_type h5t_to_nc_type(hid_t type_id);
 
 extern const H5VL_file_class_t H5VL_ncmpi_file_g;
 extern const H5VL_dataset_class_t H5VL_ncmpi_dataset_g;
+extern const H5VL_attr_class_t H5VL_ncmpi_attr_g;
 extern const H5VL_class_t H5VL_ncmpi_g;
 
 #endif
