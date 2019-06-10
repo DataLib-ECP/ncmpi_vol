@@ -70,6 +70,7 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
 
     varp = (H5VL_ncmpi_dataset_t*)malloc(sizeof(H5VL_ncmpi_dataset_t));
 
+    varp->objtype = 1;
     varp->dcpl_id = dcpl_id;
     varp->dapl_id = dapl_id;
     varp->dxpl_id = dxpl_id;
@@ -135,6 +136,7 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
 
     err = ncmpi_inq_varid(fp->ncid, name, &(varp->varid)); CHECK_ERRN
 
+    varp->objtype = 1;
     varp->dcpl_id = -1;
     varp->dapl_id = dapl_id;
     varp->dxpl_id = dxpl_id;
@@ -315,7 +317,7 @@ herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxp
                 // Get dim size
                 dims = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim);
                 for(i = 0; i < varp->ndim; i++){
-                    err = ncmpi_inq_dimlen(varp->fp->ncid, varp->dimids[i], &dlen);
+                    err = ncmpi_inq_dimlen(varp->fp->ncid, varp->dimids[i], &dlen); CHECK_ERR
                     dims[i] = dlen;
                 }
 
@@ -337,6 +339,11 @@ herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxp
         case H5VL_DATASET_GET_TYPE:
             {
                 hid_t   *ret_id = va_arg(arguments, hid_t *);
+                nc_type xtype;
+
+                err = ncmpi_inq_vartype(varp->fp->ncid, varp->varid, &xtype); CHECK_ERR
+
+                *ret_id = nc_to_h5t_type(xtype);
 
                 break;
             }
@@ -346,6 +353,8 @@ herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxp
             {
                 hid_t   *ret_id = va_arg(arguments, hid_t *);
 
+                *ret_id = varp->dcpl_id;
+
                 break;
             }
 
@@ -353,6 +362,8 @@ herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxp
         case H5VL_DATASET_GET_DAPL:
             {
                 hid_t   *ret_id = va_arg(arguments, hid_t *);
+
+                *ret_id = varp->dapl_id;
 
                 break;
             }
@@ -369,6 +380,11 @@ herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxp
         case H5VL_DATASET_GET_OFFSET:
             {
                 haddr_t *ret = va_arg(arguments, haddr_t *);
+                MPI_Offset off;
+
+                err = ncmpi_inq_varoffset(varp->fp->ncid, varp->varid, &off); CHECK_ERR
+
+                *ret = off;
 
                 break;
             }
@@ -391,6 +407,9 @@ herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxp
  *-------------------------------------------------------------------------
  */
 herr_t H5VL_ncmpi_dataset_specific(void *obj, H5VL_dataset_specific_t specific_type, hid_t  dxpl_id, void  **req, va_list arguments) {
+    int err;
+    H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
+
 #ifdef ENABLE_LOGGING 
     printf("------- PNC VOL DATASET Specific\n");
 #endif
@@ -401,6 +420,8 @@ herr_t H5VL_ncmpi_dataset_specific(void *obj, H5VL_dataset_specific_t specific_t
             {
                 const hsize_t *size = va_arg(arguments, const hsize_t *); 
 
+                RET_ERR("can not change dataset size")
+
                 break;
             }
 
@@ -408,6 +429,7 @@ herr_t H5VL_ncmpi_dataset_specific(void *obj, H5VL_dataset_specific_t specific_t
             {
                 hid_t dset_id = va_arg(arguments, hid_t);
 
+                err = ncmpi_flush(varp->fp->ncid); CHECK_ERR
 
                 break;
             }

@@ -33,3 +33,16 @@ nc_type h5t_to_nc_type(hid_t type_id) {
     else if (type_id == H5T_NATIVE_LDOUBLE) return NC_DOUBLE;
     return NC_NAT;
 }
+
+hid_t nc_to_h5t_type(nc_type type_id) {
+    if (type_id == NC_CHAR) return H5T_NATIVE_CHAR;
+    else if (type_id == NC_SHORT) return H5T_NATIVE_SHORT;
+    else if (type_id == NC_INT) return H5T_NATIVE_INT;
+    else if (type_id == NC_INT64) return H5T_NATIVE_LLONG;
+    else if (type_id == NC_USHORT) return H5T_NATIVE_USHORT;
+    else if (type_id == NC_UINT) return H5T_NATIVE_UINT;
+    else if (type_id == NC_UINT64) return H5T_NATIVE_ULLONG;
+    else if (type_id == NC_FLOAT) return H5T_NATIVE_FLOAT;
+    else if (type_id == NC_DOUBLE) return H5T_NATIVE_DOUBLE;
+    return -1;
+}

@@ -44,6 +44,7 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
 
+    file->objtype = 0;
     file->fcpl_id = fcpl_id;
     file->fapl_id = fapl_id;
     file->dxpl_id = dxpl_id;
@@ -75,6 +76,7 @@ void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
 
+    file->objtype = 0;
     file->fcpl_id = -1;
     file->fapl_id = fapl_id;
     file->dxpl_id = dxpl_id;
