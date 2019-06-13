@@ -61,6 +61,14 @@ H5_DLL hid_t H5VL_ncmpi_register(void);
     } \
 }
 
+#define CHECK_ERRJ { \
+    if (err != NC_NOERR) { \
+        printf("Error at line %d in %s: (%s)\n", \
+        __LINE__,__FILE__,ncmpi_strerrno(err)); \
+        goto errout; \
+    } \
+}
+
 #define CHECK_HERR { \
     if (herr < 0) { \
         printf("Error at line %d in %s:\n", \
@@ -90,6 +98,7 @@ H5_DLL hid_t H5VL_ncmpi_register(void);
     __LINE__,__FILE__, A); \
     return NULL; \
 }
+
 /************/
 /* Typedefs */
 /************/
@@ -107,8 +116,27 @@ typedef struct H5VL_ncmpi_file_t {
     hid_t fapl_id;
     hid_t dxpl_id;
 
+    char *path;
+
+    int rank;
     int ncid;
 } H5VL_ncmpi_file_t;
+
+/* The pass through VOL info object */
+typedef struct H5VL_ncmpi_group_t {
+    int objtype;
+
+    hid_t lcpl_id;
+    hid_t gcpl_id;
+    hid_t gapl_id;
+    hid_t dxpl_id;
+
+    char *path;
+    char *name;
+
+    H5VL_ncmpi_group_t *gp;
+    H5VL_ncmpi_file_t *fp;
+} H5VL_ncmpi_group_t;
 
 /* The pass through VOL info object */
 typedef struct H5VL_ncmpi_dataset_t {
@@ -121,7 +149,11 @@ typedef struct H5VL_ncmpi_dataset_t {
     int varid;
     int ndim;
     int *dimids;
-    
+
+    char *path;
+    char *name;
+
+    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 } H5VL_ncmpi_dataset_t;
 
@@ -135,13 +167,16 @@ typedef struct H5VL_ncmpi_attr_t {
 
     int attid;
     MPI_Offset size;
-    char *name;
     int varid;
     hsize_t *dims;
     int ndim;
     nc_type type;
 
-    H5VL_ncmpi_dataset_t * dp;
+    char *path;
+    char *name;
+
+    H5VL_ncmpi_dataset_t *dp;
+    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 } H5VL_ncmpi_attr_t;
 
@@ -152,6 +187,7 @@ extern hid_t nc_to_h5t_type(nc_type type_id);
 extern const H5VL_file_class_t H5VL_ncmpi_file_g;
 extern const H5VL_dataset_class_t H5VL_ncmpi_dataset_g;
 extern const H5VL_attr_class_t H5VL_ncmpi_attr_g;
+extern const H5VL_group_class_t H5VL_ncmpi_group_g;
 extern const H5VL_class_t H5VL_ncmpi_g;
 
 #endif

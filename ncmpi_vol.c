@@ -59,14 +59,7 @@ const H5VL_class_t H5VL_ncmpi_g = {
         NULL                     /* close */
     },
     H5VL_ncmpi_file_g,                  /* file_cls */
-    {                                           /* group_cls */
-        NULL,                      /* create */
-        NULL,                        /* open */
-        NULL,                         /* get */
-        NULL,                    /* specific */
-        NULL,                    /* optional */
-        NULL                        /* close */
-    },
+    H5VL_ncmpi_group_g,                  /* group_cls */
     {                                           /* link_cls */
         NULL,                       /* create */
         NULL,                         /* copy */
@@ -109,9 +102,6 @@ hid_t H5VL_NCMPI_g = H5I_INVALID_HID;
  *-------------------------------------------------------------------------
  */
 herr_t H5VL_ncmpi_init(hid_t vipl_id) {
-#ifdef ENABLE_LOGGING
-    printf("------- PNC VOL INIT\n");
-#endif
 
     return(0);
 } /* end H5VL_ncmpi_init() */
@@ -130,9 +120,6 @@ herr_t H5VL_ncmpi_init(hid_t vipl_id) {
  *---------------------------------------------------------------------------
  */
 herr_t H5VL_ncmpi_term(void) {
-#ifdef ENABLE_LOGGING
-    printf("------- PNC VOL TERM\n");
-#endif
 
     return(0);
 } /* end H5VL_ncmpi_term() */
@@ -150,10 +137,6 @@ herr_t H5VL_ncmpi_term(void) {
 void* H5VL_ncmpi_info_copy(const void *_info) {
     const H5VL_ncmpi_info_t *info = (const H5VL_ncmpi_info_t *)_info;
     H5VL_ncmpi_info_t *new_info;
-
-#ifdef ENABLE_LOGGING
-    printf("------- PNC VOL INFO Copy\n");
-#endif
 
     /* Allocate new VOL info struct for the PNC connector */
     new_info = (H5VL_ncmpi_info_t *)calloc(1, sizeof(H5VL_ncmpi_info_t));
@@ -178,10 +161,6 @@ herr_t H5VL_ncmpi_info_cmp(int *cmp_value, const void *_info1, const void *_info
     const H5VL_ncmpi_info_t *info1 = (const H5VL_ncmpi_info_t *)_info1;
     const H5VL_ncmpi_info_t *info2 = (const H5VL_ncmpi_info_t *)_info2;
 
-#ifdef ENABLE_LOGGING
-    printf("------- PNC VOL INFO Compare\n");
-#endif
-
     /* Sanity checks */
     assert(info1);
     assert(info2);
@@ -204,10 +183,6 @@ herr_t H5VL_ncmpi_info_cmp(int *cmp_value, const void *_info1, const void *_info
  */
 herr_t H5VL_ncmpi_info_free(void *_info) {
     H5VL_ncmpi_info_t *info = (H5VL_ncmpi_info_t *)_info;
-
-#ifdef ENABLE_LOGGING
-    printf("------- PNC VOL INFO Free\n");
-#endif
 
     /* Release MPI_Info */
     MPI_Comm_free(&(info->comm));
@@ -233,10 +208,6 @@ herr_t H5VL_ncmpi_info_to_str(const void *_info, char **str) {
     H5VL_class_value_t under_value = (H5VL_class_value_t)-1;
     char *under_vol_string = NULL;
     size_t under_vol_str_len = 0;
-
-#ifdef ENABLE_LOGGING
-    printf("------- PNC VOL INFO To String\n");
-#endif
 
     return(0);
 } /* end H5VL_ncmpi_info_to_str() */

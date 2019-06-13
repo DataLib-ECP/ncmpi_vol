@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
     int rank, np;
     const char *file_name;  
     char dataset_name[]="data";  
-    hid_t file_id, datasetId, dataspaceId, file_space, memspace_id, attid_f, attid_d;
+    hid_t file_id, group_id, datasetId, dataspaceId, file_space, memspace_id, attid_f, attid_d, attid_g;
     hid_t pnc_fapl, pnc_vol_id;  
     hsize_t dims[2], start[2], count[2];
     int buf[N];
@@ -32,6 +32,8 @@ int main(int argc, char **argv) {
     //Register DataElevator plugin 
     pnc_fapl = H5Pcreate(H5P_FILE_ACCESS); 
     H5Pset_fapl_mpio(pnc_fapl, MPI_COMM_WORLD, MPI_INFO_NULL);
+    H5Pset_all_coll_metadata_ops(pnc_fapl, 1);
+    H5Pset_coll_metadata_write(pnc_fapl, 1);
     pnc_vol_id = H5VLregister_connector(&H5VL_ncmpi_g, H5P_DEFAULT); 
     pnc_vol_info.comm = MPI_COMM_WORLD;
     H5Pset_vol(pnc_fapl, pnc_vol_id, &pnc_vol_info);
@@ -39,14 +41,18 @@ int main(int argc, char **argv) {
     // Create file
     file_id  = H5Fcreate(file_name, H5F_ACC_TRUNC, H5P_DEFAULT, pnc_fapl);     
     
+    // Create group
+    group_id = H5Gcreate1(file_id, "test", 0); 
+
     dims [0]    = np;
     dims [1]    = N;
     dataspaceId = H5Screate_simple(2, dims, NULL);   
-    datasetId   = H5Dcreate(file_id,dataset_name,H5T_NATIVE_INT,dataspaceId,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);  
+    datasetId   = H5Dcreate(group_id,dataset_name,H5T_NATIVE_INT,dataspaceId,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);  
     memspace_id = H5Screate_simple(1, dims + 1, NULL);
     file_space = H5Dget_space(datasetId);
     attid_d = H5Acreate(datasetId, "Dataset_Att", H5T_NATIVE_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
     attid_f = H5Acreate(file_id, "File_Att", H5T_NATIVE_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attid_g = H5Acreate(group_id, "Group_Att", H5T_NATIVE_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
 
     start[0] = rank;
     start[1] = 0;
@@ -95,9 +101,10 @@ int main(int argc, char **argv) {
     H5Sclose(memspace_id);
     H5Sclose(dataspaceId);  
     H5Aclose(attid_d);
+    H5Aclose(attid_g);
     H5Aclose(attid_f);
     H5Dclose(datasetId);  
-    
+    H5Gclose(group_id);
     H5Fclose(file_id);
     
     MPI_Finalize();

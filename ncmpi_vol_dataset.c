@@ -44,25 +44,32 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     MPI_Offset dlen;
     nc_type type;
     char tmp[1024];
+    char *ppath;
     H5VL_ncmpi_dataset_t *varp;        /* New dataset's info */
     H5VL_ncmpi_file_t *fp;
-
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Create\n");
-#endif
+    H5VL_ncmpi_group_t *gp;
 
     /* Check arguments */
-    if(loc_params->obj_type != H5I_FILE)   RET_ERRN("container not a file")
+    if((loc_params->obj_type != H5I_FILE) && (loc_params->obj_type != H5I_GROUP))   RET_ERRN("container not a file or group")
     if(loc_params->type != H5VL_OBJECT_BY_SELF) RET_ERRN("loc_params->type is not H5VL_OBJECT_BY_SELF")
     if(H5I_DATATYPE != H5Iget_type(type_id))    RET_ERRN("invalid datatype ID")
     if(H5I_DATASPACE != H5Iget_type(space_id))   RET_ERRN("invalid dataspace ID")
+
+    if (loc_params->obj_type == H5I_FILE){
+        fp = (H5VL_ncmpi_file_t*)obj;
+        gp = NULL;
+        ppath = "";
+    }
+    else{
+        gp = (H5VL_ncmpi_group_t*)obj;
+        fp = gp->fp;
+        ppath = gp->path;
+    }
 
     // Convert to NC type
     type = h5t_to_nc_type(type_id);
     if (type == NC_NAT) RET_ERRN("only native type is supported")
 
-    fp = (H5VL_ncmpi_file_t*)obj;
-    
     // Enter define mode
     err = ncmpi_redef(fp->ncid);
     if (err == NC_EINDEFINE)    err = NC_NOERR;
@@ -70,11 +77,15 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
 
     varp = (H5VL_ncmpi_dataset_t*)malloc(sizeof(H5VL_ncmpi_dataset_t));
 
-    varp->objtype = 1;
+    varp->objtype = H5I_DATASET;
     varp->dcpl_id = dcpl_id;
     varp->dapl_id = dapl_id;
     varp->dxpl_id = dxpl_id;
     varp->fp = fp;
+    varp->gp = gp;
+    varp->path = (char*)malloc(strlen(ppath) + strlen(name) + 2);
+    sprintf(varp->path, "%s_%s", ppath, name);
+    varp->name = varp->path + strlen(ppath) + 1;
 
     varp->ndim = H5Sget_simple_extent_ndims(space_id);
     if (varp->ndim < 0)   RET_ERRN("ndim < 0")
@@ -90,12 +101,17 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
         err = ncmpi_def_dim(fp->ncid, tmp, dlen, varp->dimids + i); CHECK_ERRN
     }
 
-    err = ncmpi_def_var(fp->ncid, name, type, varp->ndim, varp->dimids, &(varp->varid)); CHECK_ERRN
+    err = ncmpi_def_var(fp->ncid, varp->path, type, varp->ndim, varp->dimids, &(varp->varid)); CHECK_ERRJ
 
     free(dims);
 
     return (void *)varp;
 
+errout:
+    free(varp->path);
+    free(varp);
+
+    return NULL;
 } /* end H5VL_ncmpi_dataset_create() */
 
 
@@ -113,41 +129,56 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
                             hid_t dapl_id, hid_t  dxpl_id, void  **req) {
     int err;
     int i;
-    int ndim;
-    int *dimids;
     hsize_t *dims;
     MPI_Offset dlen;
     nc_type type;
     char tmp[1024];
+    char *ppath;
     H5VL_ncmpi_dataset_t *varp;        /* New dataset's info */
+    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Open\n");
-#endif
-
     /* Check arguments */
-    if(loc_params->obj_type != H5I_FILE)   RET_ERRN("container not a file")
+    if((loc_params->obj_type != H5I_FILE) && (loc_params->obj_type != H5I_GROUP))   RET_ERRN("container not a file or group")
     if(loc_params->type != H5VL_OBJECT_BY_SELF) RET_ERRN("loc_params->type is not H5VL_OBJECT_BY_SELF")
 
-    fp = (H5VL_ncmpi_file_t*)obj;
+    if (loc_params->obj_type == H5I_FILE){
+        fp = (H5VL_ncmpi_file_t*)obj;
+        gp = NULL;
+        ppath = "";
+    }
+    else{
+        gp = (H5VL_ncmpi_group_t*)obj;
+        fp = gp->fp;
+        ppath = gp->path;
+    }
     
     varp = (H5VL_ncmpi_dataset_t*)malloc(sizeof(H5VL_ncmpi_dataset_t));
 
-    err = ncmpi_inq_varid(fp->ncid, name, &(varp->varid)); CHECK_ERRN
-
-    varp->objtype = 1;
+    varp->objtype = H5I_DATASET;
     varp->dcpl_id = -1;
     varp->dapl_id = dapl_id;
     varp->dxpl_id = dxpl_id;
     varp->fp = fp;
+    varp->gp = gp;
+    varp->path = (char*)malloc(strlen(ppath) + strlen(name) + 2);
+    sprintf(varp->path, "%s_%s", ppath, name);
+    varp->name = varp->path + strlen(ppath) + 1;
 
-    err = ncmpi_inq_varndims(fp->ncid, varp->varid, &(varp->ndim)); CHECK_ERRN
+    err = ncmpi_inq_varid(fp->ncid, varp->path, &(varp->varid)); CHECK_ERRJ
+
+    err = ncmpi_inq_varndims(fp->ncid, varp->varid, &(varp->ndim)); CHECK_ERRJ
 
     varp->dimids = (int*)malloc(sizeof(int) * varp->ndim );
-    err = ncmpi_inq_vardimid(fp->ncid, varp->varid, varp->dimids);  CHECK_ERRN
+    err = ncmpi_inq_vardimid(fp->ncid, varp->varid, varp->dimids);  CHECK_ERRJ
 
     return (void *)varp;
+
+errout:
+    free(varp->path);
+    free(varp);
+
+    return NULL;
 } /* end H5VL_ncmpi_dataset_open() */
 
 
@@ -172,10 +203,6 @@ herr_t H5VL_ncmpi_dataset_read(void *obj, hid_t mem_type_id, hid_t mem_space_id,
     MPI_Offset *start, *count, *stride;
     MPI_Offset nelems;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
-
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Read\n");
-#endif
 
     // Enter data mode
     err = ncmpi_enddef(varp->fp->ncid);
@@ -241,10 +268,6 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
     MPI_Offset nelems;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
 
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Write\n");
-#endif
-
     // Enter data mode
     err = ncmpi_enddef(varp->fp->ncid);
     if (err == NC_ENOTINDEFINE)    err = NC_NOERR;
@@ -300,10 +323,6 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
 herr_t H5VL_ncmpi_dataset_get(void *obj, H5VL_dataset_get_t get_type, hid_t  dxpl_id, void  **req, va_list arguments) {
     int err;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
-
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Get\n");
-#endif
 
     switch(get_type) {
         /* H5Dget_space */
@@ -410,10 +429,6 @@ herr_t H5VL_ncmpi_dataset_specific(void *obj, H5VL_dataset_specific_t specific_t
     int err;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
 
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Specific\n");
-#endif
-
     switch(specific_type) {
         /* H5Dspecific_space */
         case H5VL_DATASET_SET_EXTENT:
@@ -458,9 +473,6 @@ herr_t H5VL_ncmpi_dataset_specific(void *obj, H5VL_dataset_specific_t specific_t
  *-------------------------------------------------------------------------
  */
 herr_t H5VL_ncmpi_dataset_optional(void *obj, hid_t  dxpl_id, void  **req, va_list arguments) {
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Optional\n");
-#endif
 
     return 0;
 } /* end H5VL_ncmpi_dataset_optional() */
@@ -478,10 +490,6 @@ herr_t H5VL_ncmpi_dataset_optional(void *obj, hid_t  dxpl_id, void  **req, va_li
  */
 herr_t H5VL_ncmpi_dataset_close(void *dset, hid_t  dxpl_id, void  **req) {
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)dset;
-
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL DATASET Close\n");
-#endif
     
     free(varp->dimids);
     free(varp);

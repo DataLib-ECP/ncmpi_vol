@@ -32,22 +32,70 @@ const H5VL_file_class_t H5VL_ncmpi_file_g{
  */
 void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hid_t fapl_id, hid_t dxpl_id, void **req) {
     int err;
+    herr_t herr;
+    hbool_t ret;
     int ncid;
+    int rank;
+    MPI_Comm comm;
+    MPI_Info info;
     H5VL_ncmpi_file_t *file;
 
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL FILE Create\n");
-#endif
+    herr = H5Pget_fapl_mpio(fapl_id, &comm, &info);
+    if (herr < 0){
+        info = MPI_INFO_NULL;
+        comm = MPI_COMM_WORLD;
+    }
 
-    err = ncmpi_create(MPI_COMM_WORLD, name, NC_64BIT_DATA, MPI_INFO_NULL, &ncid); CHECK_ERRN
+    MPI_Comm_rank(comm, &rank);
+
+    if (herr < 0){
+        if (rank == 0){
+            printf("Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n");
+        }
+    }
+
+    herr = H5Pget_all_coll_metadata_ops(fapl_id, &ret);
+    if (herr < 0){
+        if (rank == 0){
+            printf("Warrning: all_coll_metadata_ops not set, assuming 1\n");
+        }
+    }
+    else{
+        if (ret != 1){
+            if (rank == 0){
+                printf("Error: all_coll_metadata_ops must be 1\n");
+            }
+            return NULL;
+        }
+    }
+
+    herr = H5Pget_coll_metadata_write(fapl_id, &ret);
+    if (herr < 0){
+        if (rank == 0){
+            printf("Warrning: coll_metadata_write not set, assuming 1\n");
+        }
+    }
+    else{
+        if (ret != 1){
+            if (rank == 0){
+                printf("Error: coll_metadata_write must be 1\n");
+            }
+            return NULL;
+        }
+    }
+
+    err = ncmpi_create(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN
 
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
 
-    file->objtype = 0;
+    file->objtype = H5I_FILE;
     file->fcpl_id = fcpl_id;
     file->fapl_id = fapl_id;
     file->dxpl_id = dxpl_id;
+    file->rank = rank;
+    file->path = (char*)malloc(1);
+    file->path[0] = '\0';
 
     return((void *)file);
 } /* end H5VL_ncmpi_file_create() */
@@ -64,22 +112,70 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
  */
 void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void **req){
     int err;
+    herr_t herr;
+    int rank;
     int ncid;
+    hbool_t ret;
+    MPI_Comm comm;
+    MPI_Info info;
     H5VL_ncmpi_file_t *file;
 
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL FILE Open\n");
-#endif
+    herr = H5Pget_fapl_mpio(fapl_id, &comm, &info);
+    if (herr < 0){
+        info = MPI_INFO_NULL;
+        comm = MPI_COMM_WORLD;
+    }
 
-    err = ncmpi_open(MPI_COMM_WORLD, name, NC_64BIT_DATA, MPI_INFO_NULL, &ncid); CHECK_ERRN
+    MPI_Comm_rank(comm, &rank);
+
+    if (herr < 0){
+        if (rank == 0){
+            printf("Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n");
+        }
+    }
+
+    herr = H5Pget_all_coll_metadata_ops(fapl_id, &ret);
+    if (herr < 0){
+        if (rank == 0){
+            printf("Warrning: all_coll_metadata_ops not set, assuming 1\n");
+        }
+    }
+    else{
+        if (ret != 1){
+            if (rank == 0){
+                printf("Error: all_coll_metadata_ops must be 1\n");
+            }
+            return NULL;
+        }
+    }
+
+    herr = H5Pget_coll_metadata_write(fapl_id, &ret);
+    if (herr < 0){
+        if (rank == 0){
+            printf("Warrning: coll_metadata_write not set, assuming 1\n");
+        }
+    }
+    else{
+        if (ret != 1){
+            if (rank == 0){
+                printf("Error: coll_metadata_write must be 1\n");
+            }
+            return NULL;
+        }
+    }
+
+    err = ncmpi_open(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN
 
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
 
-    file->objtype = 0;
+    file->objtype = H5I_FILE;
     file->fcpl_id = -1;
     file->fapl_id = fapl_id;
     file->dxpl_id = dxpl_id;
+    file->rank = rank;
+    file->path = (char*)malloc(1);
+    file->path[0] = '\0';
 
     return((void *)file);
 } /* end H5VL_ncmpi_file_open() */
@@ -96,10 +192,6 @@ void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
  */
 herr_t H5VL_ncmpi_file_get(void *objp, H5VL_file_get_t get_type, hid_t dxpl_id, void **req, va_list arguments) {
     int err;
-
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL FILE Get\n");
-#endif
 
     switch(get_type){
         case H5VL_FILE_GET_FAPL:
@@ -253,11 +345,6 @@ herr_t H5VL_ncmpi_file_get(void *objp, H5VL_file_get_t get_type, hid_t dxpl_id, 
  */
 herr_t H5VL_ncmpi_file_specific(void *objp, H5VL_file_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments) {
     int err;
-    H5VL_ncmpi_file_t *fp;
-
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL FILE Specific\n");
-#endif
 
     switch (specific_type){
         case H5VL_FILE_FLUSH:
@@ -319,10 +406,6 @@ herr_t H5VL_ncmpi_file_optional(void *file, hid_t dxpl_id, void **req, va_list a
     int err;
     H5VL_ncmpi_file_t *fp = (H5VL_ncmpi_file_t*)file;
 
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL File Optional\n");
-#endif
-
     return 0;
 } /* end H5VL_ncmpi_file_optional() */
 
@@ -340,12 +423,9 @@ herr_t H5VL_ncmpi_file_close(void *file, hid_t dxpl_id, void **req) {
     int err;
     H5VL_ncmpi_file_t *fp = (H5VL_ncmpi_file_t*)file;
 
-#ifdef ENABLE_LOGGING 
-    printf("------- PNC VOL File Close\n");
-#endif
-
     err = ncmpi_close(fp->ncid); CHECK_ERR
 
+    free(fp->path);
     free(fp);
 
     return err;
