@@ -64,7 +64,11 @@ int main(int argc, char **argv) {
         buf[i] = rank + 1 + i;
     }
     H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, H5P_DEFAULT, buf);  
+    for(i = 0; i < N; i++){
+        buf[i] = np + 1 + i;
+    }
     H5Awrite (attid_d, H5T_NATIVE_INT, buf);
+    H5Awrite (attid_g, H5T_NATIVE_INT, buf);
     H5Awrite (attid_f, H5T_NATIVE_INT, buf);
 
     for(i = 0; i < N; i++){
@@ -82,8 +86,18 @@ int main(int argc, char **argv) {
     }
     H5Aread(attid_d, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
-        if (buf[i] != rank + 1 + i){
-            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);
+        if (buf[i] != np + 1 + i){
+            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 1 + i, buf[i]);
+        }
+    }
+
+    for(i = 0; i < N; i++){
+        buf[i] = 0;
+    }
+    H5Aread(attid_g, H5T_NATIVE_INT, buf);
+    for(i = 0; i < N; i++){
+        if (buf[i] != np + 1 + i){
+            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 1 + i, buf[i]);
         }
     }
 
@@ -92,8 +106,8 @@ int main(int argc, char **argv) {
     }
     H5Aread(attid_f, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
-        if (buf[i] != rank + 1 + i){
-            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);
+        if (buf[i] != np + 1 + i){
+            printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 1 + i, buf[i]);
         }
     }
     
