@@ -94,9 +94,12 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
     file->fapl_id = fapl_id;
     file->dxpl_id = dxpl_id;
     file->rank = rank;
+    file->flags = 0;
     file->path = (char*)malloc(1);
     file->path[0] = '\0';
 
+    err = enter_data_mode(file); CHECK_ERRN
+ 
     return((void *)file);
 } /* end H5VL_ncmpi_file_create() */
 
@@ -174,6 +177,7 @@ void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
     file->fapl_id = fapl_id;
     file->dxpl_id = dxpl_id;
     file->rank = rank;
+    file->flags = PNC_VOL_DATA_MODE;
     file->path = (char*)malloc(1);
     file->path[0] = '\0';
 

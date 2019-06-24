@@ -46,3 +46,58 @@ hid_t nc_to_h5t_type(nc_type type_id) {
     else if (type_id == NC_DOUBLE) return H5T_NATIVE_DOUBLE;
     return -1;
 }
+
+int enter_data_mode(H5VL_ncmpi_file_t *fp){
+    int err;
+
+    if (fp->flags & PNC_VOL_DATA_MODE){
+        return NC_NOERR;
+    }
+
+    err = ncmpi_enddef(fp->ncid); CHECK_ERR
+    fp->flags |= PNC_VOL_DATA_MODE;
+
+    // Always stay at indep
+    err = enter_indep_mode(fp); CHECK_ERRN
+
+    return NC_NOERR;
+}
+
+int enter_define_mode(H5VL_ncmpi_file_t *fp){
+    int err;
+
+    if (!(fp->flags & PNC_VOL_DATA_MODE)){
+        return NC_NOERR;
+    }
+
+    err = ncmpi_redef(fp->ncid); CHECK_ERR
+    fp->flags ^= PNC_VOL_DATA_MODE;
+
+    return NC_NOERR;
+}
+
+int enter_indep_mode(H5VL_ncmpi_file_t *fp){
+    int err;
+
+    if (fp->flags & PNC_VOL_INDEP_MODE){
+        return NC_NOERR;
+    }
+
+    err = ncmpi_begin_indep_data(fp->ncid); CHECK_ERR
+    fp->flags |= PNC_VOL_INDEP_MODE;
+
+    return NC_NOERR;
+}
+
+int enter_coll_mode(H5VL_ncmpi_file_t *fp){
+    int err;
+
+    if (!(fp->flags & PNC_VOL_INDEP_MODE)){
+        return NC_NOERR;
+    }
+
+    err = ncmpi_end_indep_data(fp->ncid); CHECK_ERR
+    fp->flags ^= PNC_VOL_INDEP_MODE;
+
+    return NC_NOERR;
+}

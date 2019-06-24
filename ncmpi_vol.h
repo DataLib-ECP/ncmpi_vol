@@ -99,6 +99,9 @@ H5_DLL hid_t H5VL_ncmpi_register(void);
     return NULL; \
 }
 
+#define PNC_VOL_DATA_MODE 0x1
+#define PNC_VOL_INDEP_MODE 0x2
+
 /************/
 /* Typedefs */
 /************/
@@ -117,6 +120,8 @@ typedef struct H5VL_ncmpi_file_t {
     hid_t dxpl_id;
 
     char *path;
+
+    unsigned int flags;
 
     int rank;
     int ncid;
@@ -183,6 +188,11 @@ typedef struct H5VL_ncmpi_attr_t {
 extern MPI_Datatype h5t_to_mpi_type(hid_t type_id);
 extern nc_type h5t_to_nc_type(hid_t type_id);
 extern hid_t nc_to_h5t_type(nc_type type_id);
+
+extern int enter_data_mode(H5VL_ncmpi_file_t *fp);
+extern int enter_define_mode(H5VL_ncmpi_file_t *fp);
+extern int enter_indep_mode(H5VL_ncmpi_file_t *fp);
+extern int enter_coll_mode(H5VL_ncmpi_file_t *fp);
 
 extern const H5VL_file_class_t H5VL_ncmpi_file_g;
 extern const H5VL_dataset_class_t H5VL_ncmpi_dataset_g;

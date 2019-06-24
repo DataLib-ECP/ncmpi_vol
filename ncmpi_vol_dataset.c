@@ -71,9 +71,7 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     if (type == NC_NAT) RET_ERRN("only native type is supported")
 
     // Enter define mode
-    err = ncmpi_redef(fp->ncid);
-    if (err == NC_EINDEFINE)    err = NC_NOERR;
-    CHECK_ERRN
+    err = enter_define_mode(fp); CHECK_ERRN
 
     varp = (H5VL_ncmpi_dataset_t*)malloc(sizeof(H5VL_ncmpi_dataset_t));
 
@@ -104,6 +102,9 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     err = ncmpi_def_var(fp->ncid, varp->path, type, varp->ndim, varp->dimids, &(varp->varid)); CHECK_ERRJ
 
     free(dims);
+
+    // Back to data mode
+    err = enter_data_mode(fp); CHECK_ERRN
 
     return (void *)varp;
 
@@ -202,12 +203,13 @@ herr_t H5VL_ncmpi_dataset_read(void *obj, hid_t mem_type_id, hid_t mem_space_id,
     hsize_t *hstart, *hcount, *hstride, *hblock;
     MPI_Offset *start, *count, *stride;
     MPI_Offset nelems;
+    H5FD_mpio_xfer_t xmode;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
 
-    // Enter data mode
-    err = ncmpi_enddef(varp->fp->ncid);
-    if (err == NC_ENOTINDEFINE)    err = NC_NOERR;
-    CHECK_ERR
+    err = H5Pget_dxpl_mpio(dxpl_id, &xmode); CHECK_ERR
+    if (xmode == H5FD_MPIO_COLLECTIVE){
+        err = enter_coll_mode(varp->fp); CHECK_ERR
+    }
 
     // Convert to MPI type
     type = h5t_to_mpi_type(mem_type_id);
@@ -238,10 +240,19 @@ herr_t H5VL_ncmpi_dataset_read(void *obj, hid_t mem_type_id, hid_t mem_space_id,
         nelems *= count[i];
     }
 
-    err = ncmpi_get_vars_all(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
+    if (xmode == H5FD_MPIO_COLLECTIVE){
+        err = ncmpi_get_vars_all(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
+    }
+    else{
+        err = ncmpi_get_vars(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
+    }
 
     free(hstart);
     free(start);
+
+    if (xmode == H5FD_MPIO_COLLECTIVE){
+        err = enter_indep_mode(varp->fp); CHECK_ERR
+    }
 
     return 0;
 } /* end H5VL_ncmpi_dataset_read() */
@@ -266,12 +277,13 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
     hsize_t *hstart, *hcount, *hstride, *hblock;
     MPI_Offset *start, *count, *stride;
     MPI_Offset nelems;
+    H5FD_mpio_xfer_t xmode;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
 
-    // Enter data mode
-    err = ncmpi_enddef(varp->fp->ncid);
-    if (err == NC_ENOTINDEFINE)    err = NC_NOERR;
-    CHECK_ERR
+    err = H5Pget_dxpl_mpio(dxpl_id, &xmode); CHECK_ERR
+    if (xmode == H5FD_MPIO_COLLECTIVE){
+        err = enter_coll_mode(varp->fp); CHECK_ERR
+    }
 
     // Convert to MPI type
     type = h5t_to_mpi_type(mem_type_id);
@@ -302,11 +314,20 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
         nelems *= count[i];
     }
 
-    err = ncmpi_put_vars_all(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
-
+    if (xmode == H5FD_MPIO_COLLECTIVE){
+        err = ncmpi_put_vars_all(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
+    }
+    else{
+        err = ncmpi_put_vars(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
+    }
+    
     free(hstart);
     free(start);
     
+    if (xmode == H5FD_MPIO_COLLECTIVE){
+        err = enter_indep_mode(varp->fp); CHECK_ERR
+    }
+
     return 0;
 } /* end H5VL_ncmpi_dataset_write() */
 

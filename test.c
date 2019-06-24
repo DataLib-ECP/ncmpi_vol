@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
     const char *file_name;  
     char dataset_name[]="data";  
     hid_t file_id, group_id, datasetId, dataspaceId, file_space, memspace_id, attid_f, attid_d, attid_g;
-    hid_t pnc_fapl, pnc_vol_id;  
+    hid_t pnc_fapl, pnc_vol_id, dxplid;  
     hsize_t dims[2], start[2], count[2];
     int buf[N];
     H5VL_ncmpi_info_t pnc_vol_info;
@@ -60,10 +60,13 @@ int main(int argc, char **argv) {
     count[1] = N;
     H5Sselect_hyperslab(file_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
+    dxplid = H5Pcreate (H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(dxplid, H5FD_MPIO_COLLECTIVE);
+
     for(i = 0; i < N; i++){
         buf[i] = rank + 1 + i;
     }
-    H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, H5P_DEFAULT, buf);  
+    H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf);  
     for(i = 0; i < N; i++){
         buf[i] = np + 1 + i;
     }
@@ -74,7 +77,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = 0;
     }
-    H5Dread(datasetId, H5T_NATIVE_INT, memspace_id, file_space, H5P_DEFAULT, buf);  
+    H5Dread(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf);  
     for(i = 0; i < N; i++){
         if (buf[i] != rank + 1 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);
@@ -111,12 +114,32 @@ int main(int argc, char **argv) {
         }
     }
     
+    H5Pset_dxpl_mpio(dxplid, H5FD_MPIO_INDEPENDENT);
+
+    if (rank & 1){
+        for(i = 0; i < N; i++){
+            buf[i] = rank + 1 + i;
+        }
+        H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf); 
+
+        for(i = 0; i < N; i++){
+            buf[i] = 0;
+        }
+        H5Dread(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf);  
+        for(i = 0; i < N; i++){
+            if (buf[i] != rank + 1 + i){
+                printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);
+            }
+        }
+    }
+
     H5Sclose(file_space);
     H5Sclose(memspace_id);
     H5Sclose(dataspaceId);  
     H5Aclose(attid_d);
-    H5Aclose(attid_g);
-    H5Aclose(attid_f);
+    //H5Aclose(attid_g);
+    //H5Aclose(attid_f);
+    H5Pclose(dxplid);  
     H5Dclose(datasetId);  
     H5Gclose(group_id);
     H5Fclose(file_id);
