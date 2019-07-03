@@ -139,7 +139,7 @@ typedef struct H5VL_ncmpi_group_t {
     char *path;
     char *name;
 
-    H5VL_ncmpi_group_t *gp;
+    struct H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 } H5VL_ncmpi_group_t;
 
@@ -171,11 +171,9 @@ typedef struct H5VL_ncmpi_attr_t {
     hid_t dxpl_id;
 
     int attid;
-    MPI_Offset size;
     int varid;
-    hsize_t *dims;
-    int ndim;
     nc_type type;
+    MPI_Offset size;
 
     char *path;
     char *name;
@@ -188,6 +186,7 @@ typedef struct H5VL_ncmpi_attr_t {
 extern MPI_Datatype h5t_to_mpi_type(hid_t type_id);
 extern nc_type h5t_to_nc_type(hid_t type_id);
 extern hid_t nc_to_h5t_type(nc_type type_id);
+extern int nc_type_size(nc_type type_id);
 
 extern int enter_data_mode(H5VL_ncmpi_file_t *fp);
 extern int enter_define_mode(H5VL_ncmpi_file_t *fp);

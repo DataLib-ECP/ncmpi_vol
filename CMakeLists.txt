@@ -5,18 +5,19 @@ find_package(MPI)
 
 
 include_directories(include)
-include_directories(${PNC_DIR}/include)
 include_directories(${H5_DIR}/include)
+include_directories(${PNC_DIR}/include)
 include_directories(SYSTEM ${MPI_INCLUDE_PATH})
 
-LINK_DIRECTORIES(${PNC_DIR}/lib)
 LINK_DIRECTORIES(${H5_DIR}/lib)
+LINK_DIRECTORIES(${PNC_DIR}/lib)
 
-file(GLOB SOURCES "src/*.c")
+file(GLOB SOURCES "src/*.cpp")
 
 add_library(ncmpi_vol STATIC ${SOURCES})
 
 install(TARGETS ncmpi_vol DESTINATION lib)
-install(FILES ncmpi_vol.h DESTINATION include)
+install(FILES include/ncmpi_vol.h DESTINATION include)
 
 add_subdirectory(test)
+add_subdirectory(examples)

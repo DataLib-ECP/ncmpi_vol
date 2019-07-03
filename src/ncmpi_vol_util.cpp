@@ -47,6 +47,19 @@ hid_t nc_to_h5t_type(nc_type type_id) {
     return -1;
 }
 
+int nc_type_size(nc_type type_id) {
+    if (type_id == NC_CHAR) return 1;
+    else if (type_id == NC_SHORT) return 2;
+    else if (type_id == NC_INT) return 4;
+    else if (type_id == NC_INT64) return 8;
+    else if (type_id == NC_USHORT) return 2;
+    else if (type_id == NC_UINT) return 4;
+    else if (type_id == NC_UINT64) return 8;
+    else if (type_id == NC_FLOAT) return 4;
+    else if (type_id == NC_DOUBLE) return 8;
+    return 0;
+}
+
 int enter_data_mode(H5VL_ncmpi_file_t *fp){
     int err;
 
@@ -58,7 +71,7 @@ int enter_data_mode(H5VL_ncmpi_file_t *fp){
     fp->flags |= PNC_VOL_DATA_MODE;
 
     // Always stay at indep
-    err = enter_indep_mode(fp); CHECK_ERRN
+    err = enter_indep_mode(fp); CHECK_ERR
 
     return NC_NOERR;
 }

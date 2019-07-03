@@ -58,7 +58,7 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     if (loc_params->obj_type == H5I_FILE){
         fp = (H5VL_ncmpi_file_t*)obj;
         gp = NULL;
-        ppath = "";
+        ppath = NULL;
     }
     else{
         gp = (H5VL_ncmpi_group_t*)obj;
@@ -81,10 +81,17 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     varp->dxpl_id = dxpl_id;
     varp->fp = fp;
     varp->gp = gp;
-    varp->path = (char*)malloc(strlen(ppath) + strlen(name) + 2);
-    sprintf(varp->path, "%s_%s", ppath, name);
-    varp->name = varp->path + strlen(ppath) + 1;
-
+    if (ppath == NULL){
+        varp->path = (char*)malloc(strlen(name) + 1);
+        sprintf(varp->path, "%s", name);
+        varp->name = varp->path;
+    }
+    else{
+        varp->path = (char*)malloc(strlen(ppath) + strlen(name) + 2);
+        sprintf(varp->path, "%s_%s", ppath, name);
+        varp->name = varp->path + strlen(ppath) + 1;
+    }
+    
     varp->ndim = H5Sget_simple_extent_ndims(space_id);
     if (varp->ndim < 0)   RET_ERRN("ndim < 0")
 
@@ -146,7 +153,7 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
     if (loc_params->obj_type == H5I_FILE){
         fp = (H5VL_ncmpi_file_t*)obj;
         gp = NULL;
-        ppath = "";
+        ppath = NULL;
     }
     else{
         gp = (H5VL_ncmpi_group_t*)obj;
@@ -162,9 +169,16 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
     varp->dxpl_id = dxpl_id;
     varp->fp = fp;
     varp->gp = gp;
-    varp->path = (char*)malloc(strlen(ppath) + strlen(name) + 2);
-    sprintf(varp->path, "%s_%s", ppath, name);
-    varp->name = varp->path + strlen(ppath) + 1;
+    if (ppath == NULL){
+        varp->path = (char*)malloc(strlen(name) + 1);
+        sprintf(varp->path, "%s", name);
+        varp->name = varp->path;
+    }
+    else{
+        varp->path = (char*)malloc(strlen(ppath) + strlen(name) + 2);
+        sprintf(varp->path, "%s_%s", ppath, name);
+        varp->name = varp->path + strlen(ppath) + 1;
+    }
 
     err = ncmpi_inq_varid(fp->ncid, varp->path, &(varp->varid)); CHECK_ERRJ
 
@@ -513,6 +527,7 @@ herr_t H5VL_ncmpi_dataset_close(void *dset, hid_t  dxpl_id, void  **req) {
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)dset;
     
     free(varp->dimids);
+    free(varp->path);
     free(varp);
 
     return 0;
