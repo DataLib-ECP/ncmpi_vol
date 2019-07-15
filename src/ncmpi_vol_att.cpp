@@ -127,9 +127,6 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
 
     err = ncmpi_inq_attid(fp->ncid, varid, attp->path, &(attp->attid)); CHECK_ERRJ
 
-    // Back to data mode
-    err = enter_data_mode(fp); CHECK_ERRN
-
     return (void *)attp;
 
 errout:
@@ -306,9 +303,6 @@ herr_t H5VL_ncmpi_attr_write(void *attr, hid_t dtype_id, const void *buf,
     else if (type == NC_FLOAT) err = ncmpi_put_att_float(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (float*)buf); 
     else if (type == NC_DOUBLE) err = ncmpi_put_att_double(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (double*)buf); 
     CHECK_ERR
-
-    // Back to data mode
-    err = enter_data_mode(ap->fp); CHECK_ERR
 
     return 0;
 } /* end H5VL_ncmpi_attr_write() */

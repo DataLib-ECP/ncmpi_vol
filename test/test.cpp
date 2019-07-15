@@ -67,6 +67,8 @@ int main(int argc, char **argv) {
         buf[i] = rank + 1 + i;
     }
     H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf);  
+    H5Fflush(file_id, H5F_SCOPE_GLOBAL);
+
     for(i = 0; i < N; i++){
         buf[i] = np + 1 + i;
     }
@@ -78,6 +80,7 @@ int main(int argc, char **argv) {
         buf[i] = 0;
     }
     H5Dread(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf);  
+    H5Fflush(file_id, H5F_SCOPE_GLOBAL);
     for(i = 0; i < N; i++){
         if (buf[i] != rank + 1 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, rank + 1 + i, buf[i]);

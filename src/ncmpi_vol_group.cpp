@@ -82,9 +82,6 @@ void *H5VL_ncmpi_group_create(  void *obj, const H5VL_loc_params_t *loc_params, 
     i = 0;
     err = ncmpi_put_att(fp->ncid, NC_GLOBAL, tmp, NC_INT, 1, &i); CHECK_ERRJ
 
-    // Back to data mode
-    err = enter_data_mode(fp); CHECK_ERRN
-
     return (void *)grup;
 
 errout:

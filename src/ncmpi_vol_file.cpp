@@ -97,8 +97,6 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
     file->flags = 0;
     file->path = (char*)malloc(1);
     file->path[0] = '\0';
-
-    err = enter_data_mode(file); CHECK_ERRN
  
     return((void *)file);
 } /* end H5VL_ncmpi_file_create() */
@@ -355,9 +353,9 @@ herr_t H5VL_ncmpi_file_specific(void *objp, H5VL_file_specific_t specific_type, 
             {
                 H5I_type_t type;       
                 H5VL_ncmpi_file_t *fp;
-
-                type = va_arg(arguments, H5I_type_t);
                 
+                type = (H5I_type_t)va_arg(arguments, int);
+
                 switch (type){
                     case H5I_FILE:
                         fp = (H5VL_ncmpi_file_t*)objp;
@@ -372,6 +370,9 @@ herr_t H5VL_ncmpi_file_specific(void *objp, H5VL_file_specific_t specific_type, 
                         RET_ERR("type not supported")
                 }
 
+                // Enter data mode
+                err = enter_data_mode(fp); CHECK_ERRN
+                err = ncmpi_wait_all(fp->ncid, NC_REQ_ALL, NULL, NULL); CHECK_ERR
                 err = ncmpi_flush(fp->ncid); CHECK_ERR
             }
             break;
@@ -382,7 +383,7 @@ herr_t H5VL_ncmpi_file_specific(void *objp, H5VL_file_specific_t specific_type, 
                 htri_t *result;
 
                 fapl_id = va_arg(arguments, hid_t*);
-                name = va_arg(arguments, char*);
+                name = va_arg(arguments, const char*);
                 result = va_arg(arguments, htri_t*);
 
                 *result = 1;

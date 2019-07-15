@@ -110,9 +110,6 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
 
     free(dims);
 
-    // Back to data mode
-    err = enter_data_mode(fp); CHECK_ERRN
-
     return (void *)varp;
 
 errout:
@@ -160,7 +157,7 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
         fp = gp->fp;
         ppath = gp->path;
     }
-    
+
     varp = (H5VL_ncmpi_dataset_t*)malloc(sizeof(H5VL_ncmpi_dataset_t));
 
     varp->objtype = H5I_DATASET;
@@ -206,66 +203,120 @@ errout:
  *
  *-------------------------------------------------------------------------
  */
-herr_t H5VL_ncmpi_dataset_read(void *obj, hid_t mem_type_id, hid_t mem_space_id,
-    hid_t file_space_id, hid_t  dxpl_id, void *buf,
-    void  **req)
-{
+herr_t H5VL_ncmpi_dataset_read( void *obj, hid_t mem_type_id, hid_t mem_space_id,
+                                hid_t file_space_id, hid_t  dxpl_id, void *buf,
+                                void  **req) {
     int err;
     herr_t herr;
-    int i;
+    int i, j;
+    int reqid, esize;
     MPI_Datatype type;
-    hsize_t *hstart, *hcount, *hstride, *hblock;
-    MPI_Offset *start, *count, *stride;
+    hsize_t *hstart = NULL, *hcount, *hstride, *hblock;
+    MPI_Offset *start = NULL, *count;
+    MPI_Offset **starts = NULL, **counts;
     MPI_Offset nelems;
-    H5FD_mpio_xfer_t xmode;
+    H5S_sel_type stype;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
-
-    err = H5Pget_dxpl_mpio(dxpl_id, &xmode); CHECK_ERR
-    if (xmode == H5FD_MPIO_COLLECTIVE){
-        err = enter_coll_mode(varp->fp); CHECK_ERR
-    }
 
     // Convert to MPI type
     type = h5t_to_mpi_type(mem_type_id);
     if (type == MPI_DATATYPE_NULL) RET_ERR("only native type is supported")
+    esize = nc_type_size(h5t_to_nc_type(mem_type_id));
 
-    // Get start, count, stride
-    hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * 4);
-    hcount = hstart + varp->ndim;
-    hstride = hcount + varp->ndim;
-    hblock = hstride + varp->ndim;
-    herr = H5Sget_regular_hyperslab(file_space_id, hstart, hstride, hcount, hblock); CHECK_HERR
-    for(i = 0; i < varp->ndim; i++){
-        if (hblock[i] != 1){
-            free(hstart);
-            RET_ERR("selection block must be 1")
-        }
+    stype =  H5Sget_select_type(file_space_id);
+
+    switch (stype){
+        case H5S_SEL_POINTS:
+            {
+                hssize_t npoint;
+
+                npoint = H5Sget_select_elem_npoints(file_space_id);
+
+                hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * npoint);
+
+                start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * (npoint + 1));
+                count = start + varp->ndim * npoint;
+                starts = (MPI_Offset**)malloc(sizeof(MPI_Offset*) * npoint * 2);
+                counts = starts + npoint;
+
+                herr = H5Sget_select_elem_pointlist(file_space_id, 0, npoint, hstart); CHECK_HERR
+
+                for(i = 0; i < varp->ndim; i++){
+                    count[i] = 1;
+                }
+                for(i = 0; i < npoint * varp->ndim; i++){
+                    start[i] = hstart[i];
+                }
+                for(i = 0; i < npoint; i++){
+                    starts[i] = start + (i * varp->ndim);
+                    counts[i] = count;
+                }
+
+                err = ncmpi_iget_varn(varp->fp->ncid, varp->varid, npoint, starts, counts, buf, npoint, type, NULL); CHECK_ERR
+            }
+            break;
+        case H5S_SEL_HYPERSLABS:
+            {
+                hssize_t nblock;
+                hsize_t *hstartp, *hendp;
+                int reqid;
+                char *bufp = (char*)buf;
+
+                nblock = H5Sget_select_hyper_nblocks(file_space_id);
+
+                hstartp = hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * 2 * nblock);
+                hendp = hstart + varp->ndim;
+
+                start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 2);
+                count = start + varp->ndim;
+
+                herr = H5Sget_select_hyper_blocklist(file_space_id, 0, nblock, hstart); CHECK_HERR
+
+                for(i = 0; i < nblock; i++){
+                    nelems = 1;
+                    for(j = 0; j < varp->ndim; j++){
+                        start[j] = hstartp[j];
+                        count[j] = hendp[j] - hstartp[j] + 1;
+                        nelems *= count[j];
+                    }
+                    err = ncmpi_iget_vara(varp->fp->ncid, varp->varid, start, count, (void*)bufp, nelems, type, NULL); CHECK_ERR
+
+                    bufp += nelems * esize;
+                    hstartp += varp->ndim * 2;
+                    hendp += varp->ndim * 2;
+                }
+            }
+            break;
+        case H5S_SEL_ALL:
+            {
+                int ndim;
+
+                hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim);
+                ndim = H5Sget_simple_extent_dims(file_space_id, hstart, NULL);
+                if (ndim != varp->ndim){
+                    RET_ERR("File space dimension mismatch");
+                }
+
+                nelems = 1;
+                for(i = 0; i < varp->ndim; i++){
+                    nelems *= hstart[i];
+                }
+
+                err = ncmpi_iget_var(varp->fp->ncid, varp->varid, buf, nelems, type, NULL); CHECK_ERR
+            }
+            break;
+        default:
+            RET_ERR("Select type not supported");
     }
 
-    // Convert to netcdf start, count, stride
-    start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 3);
-    count = start + varp->ndim;
-    stride = count + varp->ndim;
-    nelems = 1;
-    for(i = 0; i < varp->ndim; i++){
-        start[i] = hstart[i];
-        count[i] = hcount[i];
-        stride[i] = hstride[i];
-        nelems *= count[i];
+    if (hstart != NULL){
+        free(hstart);
     }
-
-    if (xmode == H5FD_MPIO_COLLECTIVE){
-        err = ncmpi_get_vars_all(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
+    if (start != NULL){
+        free(start);
     }
-    else{
-        err = ncmpi_get_vars(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
-    }
-
-    free(hstart);
-    free(start);
-
-    if (xmode == H5FD_MPIO_COLLECTIVE){
-        err = enter_indep_mode(varp->fp); CHECK_ERR
+    if (starts != NULL){
+        free(starts);
     }
 
     return 0;
@@ -286,61 +337,117 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
                                 void  **req) {
     int err;
     herr_t herr;
-    int i;
+    int i, j;
+    int reqid, esize;
     MPI_Datatype type;
-    hsize_t *hstart, *hcount, *hstride, *hblock;
-    MPI_Offset *start, *count, *stride;
+    hsize_t *hstart = NULL, *hcount, *hstride, *hblock;
+    MPI_Offset *start = NULL, *count;
+    MPI_Offset **starts = NULL, **counts;
     MPI_Offset nelems;
-    H5FD_mpio_xfer_t xmode;
+    H5S_sel_type stype;
     H5VL_ncmpi_dataset_t *varp = (H5VL_ncmpi_dataset_t*)obj;
-
-    err = H5Pget_dxpl_mpio(dxpl_id, &xmode); CHECK_ERR
-    if (xmode == H5FD_MPIO_COLLECTIVE){
-        err = enter_coll_mode(varp->fp); CHECK_ERR
-    }
 
     // Convert to MPI type
     type = h5t_to_mpi_type(mem_type_id);
     if (type == MPI_DATATYPE_NULL) RET_ERR("only native type is supported")
+    esize = nc_type_size(h5t_to_nc_type(mem_type_id));
 
-    // Get start, count, stride
-    hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * 4);
-    hcount = hstart + varp->ndim;
-    hstride = hcount + varp->ndim;
-    hblock = hstride + varp->ndim;
-    herr = H5Sget_regular_hyperslab(file_space_id, hstart, hstride, hcount, hblock); CHECK_HERR
-    for(i = 0; i < varp->ndim; i++){
-        if (hblock[i] != 1){
-            free(hstart);
-            RET_ERR("selection block must be 1")
-        }
+    stype =  H5Sget_select_type(file_space_id);
+
+    switch (stype){
+        case H5S_SEL_POINTS:
+            {
+                hssize_t npoint;
+
+                npoint = H5Sget_select_elem_npoints(file_space_id);
+
+                hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * npoint);
+
+                start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * (npoint + 1));
+                count = start + varp->ndim * npoint;
+                starts = (MPI_Offset**)malloc(sizeof(MPI_Offset*) * npoint * 2);
+                counts = starts + npoint;
+
+                herr = H5Sget_select_elem_pointlist(file_space_id, 0, npoint, hstart); CHECK_HERR
+
+                for(i = 0; i < varp->ndim; i++){
+                    count[i] = 1;
+                }
+                for(i = 0; i < npoint * varp->ndim; i++){
+                    start[i] = hstart[i];
+                }
+                for(i = 0; i < npoint; i++){
+                    starts[i] = start + (i * varp->ndim);
+                    counts[i] = count;
+                }
+
+                err = ncmpi_iput_varn(varp->fp->ncid, varp->varid, npoint, starts, counts, buf, npoint, type, NULL); CHECK_ERR
+            }
+            break;
+        case H5S_SEL_HYPERSLABS:
+            {
+                hssize_t nblock;
+                hsize_t *hstartp, *hendp;
+                int reqid;
+                char *bufp = (char*)buf;
+
+                nblock = H5Sget_select_hyper_nblocks(file_space_id);
+
+                hstartp = hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * 2 * nblock);
+                hendp = hstart + varp->ndim;
+
+                start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 2);
+                count = start + varp->ndim;
+
+                herr = H5Sget_select_hyper_blocklist(file_space_id, 0, nblock, hstart); CHECK_HERR
+
+                for(i = 0; i < nblock; i++){
+                    nelems = 1;
+                    for(j = 0; j < varp->ndim; j++){
+                        start[j] = hstartp[j];
+                        count[j] = hendp[j] - hstartp[j] + 1;
+                        nelems *= count[j];
+                    }
+                    err = ncmpi_iput_vara(varp->fp->ncid, varp->varid, start, count, (void*)bufp, nelems, type, NULL); CHECK_ERR
+
+                    bufp += nelems * esize;
+                    hstartp += varp->ndim * 2;
+                    hendp += varp->ndim * 2;
+                }
+            }
+            break;
+        case H5S_SEL_ALL:
+            {
+                int ndim;
+
+                hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim);
+                ndim = H5Sget_simple_extent_dims(file_space_id, hstart, NULL);
+                if (ndim != varp->ndim){
+                    RET_ERR("File space dimension mismatch");
+                }
+
+                nelems = 1;
+                for(i = 0; i < varp->ndim; i++){
+                    nelems *= hstart[i];
+                }
+
+                err = ncmpi_iput_var(varp->fp->ncid, varp->varid, buf, nelems, type, NULL); CHECK_ERR
+            }
+            break;
+        default:
+            RET_ERR("Select type not supported");
     }
 
-    // Convert to netcdf start, count, stride
-    start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 3);
-    count = start + varp->ndim;
-    stride = count + varp->ndim;
-    nelems = 1;
-    for(i = 0; i < varp->ndim; i++){
-        start[i] = hstart[i];
-        count[i] = hcount[i];
-        stride[i] = hstride[i];
-        nelems *= count[i];
+    if (hstart != NULL){
+        free(hstart);
+    }
+    if (start != NULL){
+        free(start);
+    }
+    if (starts != NULL){
+        free(starts);
     }
 
-    if (xmode == H5FD_MPIO_COLLECTIVE){
-        err = ncmpi_put_vars_all(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
-    }
-    else{
-        err = ncmpi_put_vars(varp->fp->ncid, varp->varid, start, count, stride, buf, nelems, type); CHECK_ERR
-    }
-    
-    free(hstart);
-    free(start);
-    
-    if (xmode == H5FD_MPIO_COLLECTIVE){
-        err = enter_indep_mode(varp->fp); CHECK_ERR
-    }
 
     return 0;
 } /* end H5VL_ncmpi_dataset_write() */

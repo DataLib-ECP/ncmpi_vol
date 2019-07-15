@@ -57,3 +57,8 @@ A prototype implementation of PnetCDF VOL
 * Support multiple selection
   + Current implmentation assums there are only 1 selection 
 * Make it a library
+
+## Future work
+* HDF5 developer branch
+  + VOL is not yet in stable release at the time of the writing
+  + There can be ongoing change to VOL interface that makes this prototype outdated

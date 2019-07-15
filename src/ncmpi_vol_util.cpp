@@ -70,9 +70,6 @@ int enter_data_mode(H5VL_ncmpi_file_t *fp){
     err = ncmpi_enddef(fp->ncid); CHECK_ERR
     fp->flags |= PNC_VOL_DATA_MODE;
 
-    // Always stay at indep
-    err = enter_indep_mode(fp); CHECK_ERR
-
     return NC_NOERR;
 }
 

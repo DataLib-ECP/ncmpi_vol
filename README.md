@@ -1,14 +1,19 @@
 # Summary
 
-This is a prototype implementation of HDF5 VOL that use PnetCDF for underlaying I/O operation.
-It enable applications to access NetCDF rormated file using HDF5 API.
+This library is a prototype implementation of HDF5 VOL that uses PnetCDF for underlying I/O operation.
+It enables applications to access the NetCDF formatted file using HDF5 API.
 
 ## How to build
-* This library use cmake to mamage to handle build process
+* Requirement
+  + C++ compiler
+    + Due to used of constant initializer, a C++ compiler is required
+  + HDF5 developer branch
+    + VOL is not yet in stable release at the time of the writing
+* This library uses CMake to manage the build process
 * Steps
-  + Create build directory
-  + Run cmake to generate makefile
-    + Run cmake in build folder, set source directory to project directory
+  + Create a build directory
+  + Run CMake to generate makefile
+    + Run CMake in the build folder, set source directory to project directory
     + Set PNC_DIR to PnetCDF install path
     + Set H5_DIRt o HDF5 install path
   + Compile the library
@@ -20,62 +25,9 @@ It enable applications to access NetCDF rormated file using HDF5 API.
     ~/Desktop/ncmpi_vol$ mkdir build
     ~/Desktop/ncmpi_vol$ cd build
     ~/Desktop/ncmpi_vol/build$ cmake .. -DPNC_DIR=Path/to/PnetCDF/install -DH5_DIR=Path/to/HDF5/install
-    -- The C compiler identification is GNU 8.1.0
-    -- The CXX compiler identification is GNU 8.1.0
-    -- Check for working C compiler: /usr/bin/cc
-    -- Check for working C compiler: /usr/bin/cc -- works
-    -- Detecting C compiler ABI info
-    -- Detecting C compiler ABI info - done
-    -- Detecting C compile features
-    -- Detecting C compile features - done
-    -- Check for working CXX compiler: /usr/bin/c++
-    -- Check for working CXX compiler: /usr/bin/c++ -- works
-    -- Detecting CXX compiler ABI info
-    -- Detecting CXX compiler ABI info - done
-    -- Detecting CXX compile features
-    -- Detecting CXX compile features - done
-    -- Found MPI_C: /usr/lib/openmpi/lib/libmpi.so (found version "3.0")
-    -- Found MPI_CXX: /usr/lib/openmpi/lib/libmpi_cxx.so (found version "3.0")
-    -- Found MPI: TRUE (found version "3.0")
-    -- Configuring done
-    -- Generating done
+                             ...
     -- Build files have been written to: /home/khl7265/Desktop/ncmpi_vol/build
-    ~/Desktop/ncmpi_vol/build$ make
-    Scanning dependencies of target ncmpi_vol
-    [  9%] Building CXX object CMakeFiles/ncmpi_vol.dir/src/ncmpi_vol.cpp.o
-    [ 18%] Building CXX object CMakeFiles/ncmpi_vol.dir/src/ncmpi_vol_att.cpp.o
-    [ 27%] Building CXX object CMakeFiles/ncmpi_vol.dir/src/ncmpi_vol_dataset.cpp.o
-    [ 36%] Building CXX object CMakeFiles/ncmpi_vol.dir/src/ncmpi_vol_file.cpp.o
-    In file included from /usr/lib/openmpi/include/openmpi/ompi/mpi/cxx/mpicxx.h:41,
-                    from /usr/lib/openmpi/include/mpi.h:2673,
-                    from /home/khl7265/Desktop/ncmpi_vol/include/ncmpi_vol.h:34,
-                    from /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp:1:
-    /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp: In function ‘herr_t H5VL_ncmpi_file_get(void*, H5VL_file_get_t, hid_t, void**, __va_list_tag*)’:
-    /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp:241:42: warning: ‘H5I_type_t’ is promoted to ‘int’ when passed through ‘...’
-                    type = va_arg(arguments, H5I_type_t);
-                                            ^
-    /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp:241:42: note: (so you should pass ‘int’ not ‘H5I_type_t’ to ‘va_arg’)
-    /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp:241:42: note: if this code is reached, the program will abort
-    /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp: In function ‘herr_t H5VL_ncmpi_file_specific(void*, H5VL_file_specific_t, hid_t, void**, __va_list_tag*)’:
-    /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp:359:42: warning: ‘H5I_type_t’ is promoted to ‘int’ when passed through ‘...’
-                    type = va_arg(arguments, H5I_type_t);
-                                            ^
-    /home/khl7265/Desktop/ncmpi_vol/src/ncmpi_vol_file.cpp:359:42: note: if this code is reached, the program will abort
-    [ 45%] Building CXX object CMakeFiles/ncmpi_vol.dir/src/ncmpi_vol_group.cpp.o
-    [ 54%] Building CXX object CMakeFiles/ncmpi_vol.dir/src/ncmpi_vol_util.cpp.o  
-    [ 63%] Linking CXX static library libncmpi_vol.a
-    [ 63%] Built target ncmpi_vol
-    Scanning dependencies of target test_all
-    [ 72%] Building CXX object test/CMakeFiles/test_all.dir/test.cpp.o
-    [ 81%] Linking CXX executable test_all
-    [ 81%] Built target test_all
-    Scanning dependencies of target create_open
-    [ 90%] Building CXX object examples/CMakeFiles/create_open.dir/create_open.cpp.o
-    [100%] Linking CXX executable create_open
-    [100%] Built target create_open
-    ~/Desktop/ncmpi_vol/build$ make install DESTDIR=Install/path
-    [ 63%] Built target ncmpi_vol
-    [ 81%] Built target test_all
+                             ...
     [100%] Built target create_open
     Install the project...
     -- Install configuration: ""
@@ -85,7 +37,7 @@ It enable applications to access NetCDF rormated file using HDF5 API.
 
 ## How to use
 * Include library header
-  + include "ncmpi_vol.h" in the source file that register the PnetCDF VOL with HDF5
+  + include "ncmpi_vol.h" in the source file that registers the PnetCDF VOL with HDF5
   + "ncmpi_vol.h" is located in the include directory under the install path
 * Link library
   + link "libncmpi_vol.a"
@@ -101,26 +53,30 @@ It enable applications to access NetCDF rormated file using HDF5 API.
 * Dataset
   + Dataset is mapped to NetCDF varaible
   + HDF5 has no concept of dimensions
-    + The VOL create corresponding dimension in NetCDF file according to size in dataspacce
+    + The VOL create the corresponding dimension in NetCDF file according to size in dataspace
     + Dimensions are hidden from the application
 * Attribute
   + Attributes maps to attribute in NetCDF
 * Group
   + NetCDF does not have the concept of groups
   + All objects are directly attached to the file (root group)
-  + The VOL simulate group by prepend the path of the group to the name of objects
+  + The VOL simulate group by prepending the path of the group to the name of objects
     + Groups are treated as no more than a prefix
     + Objects can be allocated by full path or by name and the group contains it
 
-## Known problem
-* HDF5 developer branch required
-  + VOL is not yet in stable release at the time of the writing
-  + There can be ongoing change to VOL interface that make this prototype outdated
-* Only simple selection is supported in dataspace slicing
-  + At most 1 subarray can be selected at a time
-* C++ compiler needed
-  + Due to used of constant initilizer, a C++ compiler is required
+## Limitation
+* Memory space selection is not supported
+  + H5S_SEL_ALL is assumed
+* Interleaving file space selection is not supported
+  + The VOL assumes data is accessed in the order they are selected
+  + HDF5 semantic requires that data is accessed in the order they are saved in the file
+* H5DWrite and H5DRead only schedule the I/O operation but does not perform them
+  + H5Fflush must be called to complete the actual I/O operation
+  + Before H5Fflush is called, the buffer passed to H5DWrite and H5DRead cannot be used
+* All metadata operation must be called collectively
+  + all_coll_metadata_ops must be set in file access property list
+  + coll_metadata_write must be set in file access property list
 
 ## Future work
-* Support multiple selection
-  + Current implmentation assums there are only 1 selection 
+* Support interleaving selections
+* Support memory space selections
