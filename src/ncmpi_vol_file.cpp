@@ -383,7 +383,7 @@ herr_t H5VL_ncmpi_file_specific(void *objp, H5VL_file_specific_t specific_type, 
                 htri_t *result;
 
                 fapl_id = va_arg(arguments, hid_t*);
-                name = va_arg(arguments, const char*);
+                name = va_arg(arguments, char*);
                 result = va_arg(arguments, htri_t*);
 
                 *result = 1;

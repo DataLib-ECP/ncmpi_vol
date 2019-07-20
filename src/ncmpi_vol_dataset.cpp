@@ -210,8 +210,9 @@ herr_t H5VL_ncmpi_dataset_read( void *obj, hid_t mem_type_id, hid_t mem_space_id
     herr_t herr;
     int i, j;
     int reqid, esize;
+    int nreq, nbreq;
     MPI_Datatype type;
-    hsize_t *hstart = NULL, *hcount, *hstride, *hblock;
+    hsize_t *hstart = NULL, *hend;
     MPI_Offset *start = NULL, *count;
     MPI_Offset **starts = NULL, **counts;
     MPI_Offset nelems;
@@ -265,25 +266,94 @@ herr_t H5VL_ncmpi_dataset_read( void *obj, hid_t mem_type_id, hid_t mem_space_id
                 nblock = H5Sget_select_hyper_nblocks(file_space_id);
 
                 hstartp = hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * 2 * nblock);
-                hendp = hstart + varp->ndim;
-
-                start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 2);
-                count = start + varp->ndim;
+                hendp = hend = hstart + varp->ndim;
 
                 herr = H5Sget_select_hyper_blocklist(file_space_id, 0, nblock, hstart); CHECK_HERR
 
-                for(i = 0; i < nblock; i++){
-                    nelems = 1;
-                    for(j = 0; j < varp->ndim; j++){
-                        start[j] = hstartp[j];
-                        count[j] = hendp[j] - hstartp[j] + 1;
-                        nelems *= count[j];
-                    }
-                    err = ncmpi_iget_vara(varp->fp->ncid, varp->varid, start, count, (void*)bufp, nelems, type, NULL); CHECK_ERR
+                if (nblock == 1){
+                    start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 2) ;
+                    count = start + varp->ndim;
 
-                    bufp += nelems * esize;
-                    hstartp += varp->ndim * 2;
-                    hendp += varp->ndim * 2;
+                    for(i = 0; i < varp->ndim; i++){
+                        start[i] = hstart[i];
+                        count[i] = hend[i] - hstart[i] + 1;
+                    }
+
+                    err = ncmpi_iget_vara(varp->fp->ncid, varp->varid, start, count, buf, nelems, type, NULL); CHECK_ERR
+                }
+                else{
+                    nreq = 0;
+                    for(i = 0; i < nblock; i++){
+                        nbreq = 1;
+                        for(j = 0; j < varp->ndim - 1; j++){
+                            nbreq *= hendp[j] - hstartp[j] + 1;
+                        }
+                        nreq += nbreq;
+
+                        hstartp += varp->ndim * 2;
+                        hendp += varp->ndim * 2;
+                    }
+
+                    start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * (nreq + 1) * 2);
+                    count = start +  varp->ndim * (nreq + 1);
+
+                    starts = (MPI_Offset**)malloc(sizeof(MPI_Offset*) * varp->ndim * 2 * (nreq + 1));
+                    counts = starts + varp->ndim * (nreq + 1);
+                    for(i = 0; i < nreq + 1; i++){
+                        starts[i] = start + i * varp->ndim;
+                        counts[i] = count + i * varp->ndim;
+                    }
+
+                    for(j = 0; j < varp->ndim - 1; j++){
+                        count[j] = 1;
+                    }
+
+                    nreq = 0;
+                    hstartp = hstart;
+                    hendp = hend;
+                    for(i = 0; i < nblock; i++){
+                        for(j = 0; j < varp->ndim; j++){
+                            starts[nreq][j] = hstartp[j];
+                            counts[nreq][j] = 1;
+                        }
+                        counts[nreq][varp->ndim - 1] = hendp[varp->ndim - 1] - hstartp[varp->ndim - 1] + 1;
+                        nreq++;
+
+                        while(1){
+                            memcpy(starts[nreq], starts[nreq - 1], sizeof(MPI_Offset) * varp->ndim);
+                            memcpy(counts[nreq], counts[nreq - 1], sizeof(MPI_Offset) * varp->ndim);
+                            starts[nreq][varp->ndim - 2]++;
+                            for(j = varp->ndim - 2; j > 0; j--){
+                                if (starts[nreq][j] > hendp[j]){
+                                    starts[nreq][j] = hstartp[j];
+                                    starts[nreq][j - 1]++;
+                                }
+                                else{
+                                    break;
+                                }
+                            }
+                            if (starts[nreq][0] <= hendp[0]){
+                                nreq++;
+                            }
+                            else{
+                                break;
+                            }
+                        }
+
+                        hstartp += varp->ndim * 2;
+                        hendp += varp->ndim * 2;
+                    }
+
+                    sortreq(varp->ndim, nblock, starts, counts);
+
+                    mergereq(varp->ndim, &nblock, starts, counts);
+
+                    nelems = 0;
+                    for(i = 0; i < nblock; i++){
+                        nelems += counts[i][varp->ndim - 1];
+                    }
+
+                    err = ncmpi_iget_varn(varp->fp->ncid, varp->varid, nblock, starts, counts, buf, nelems, type, NULL); CHECK_ERR
                 }
             }
             break;
@@ -339,8 +409,9 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
     herr_t herr;
     int i, j;
     int reqid, esize;
+    int nreq, nbreq;
     MPI_Datatype type;
-    hsize_t *hstart = NULL, *hcount, *hstride, *hblock;
+    hsize_t *hstart = NULL, *hend;
     MPI_Offset *start = NULL, *count;
     MPI_Offset **starts = NULL, **counts;
     MPI_Offset nelems;
@@ -394,25 +465,94 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
                 nblock = H5Sget_select_hyper_nblocks(file_space_id);
 
                 hstartp = hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim * 2 * nblock);
-                hendp = hstart + varp->ndim;
-
-                start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 2);
-                count = start + varp->ndim;
+                hendp = hend = hstart + varp->ndim;
 
                 herr = H5Sget_select_hyper_blocklist(file_space_id, 0, nblock, hstart); CHECK_HERR
 
-                for(i = 0; i < nblock; i++){
-                    nelems = 1;
-                    for(j = 0; j < varp->ndim; j++){
-                        start[j] = hstartp[j];
-                        count[j] = hendp[j] - hstartp[j] + 1;
-                        nelems *= count[j];
-                    }
-                    err = ncmpi_iput_vara(varp->fp->ncid, varp->varid, start, count, (void*)bufp, nelems, type, NULL); CHECK_ERR
+                if (nblock == 1){
+                    start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * 2) ;
+                    count = start + varp->ndim;
 
-                    bufp += nelems * esize;
-                    hstartp += varp->ndim * 2;
-                    hendp += varp->ndim * 2;
+                    for(i = 0; i < varp->ndim; i++){
+                        start[i] = hstart[i];
+                        count[i] = hend[i] - hstart[i] + 1;
+                    }
+
+                    err = ncmpi_iput_vara(varp->fp->ncid, varp->varid, start, count, buf, nelems, type, NULL); CHECK_ERR
+                }
+                else{
+                    nreq = 0;
+                    for(i = 0; i < nblock; i++){
+                        nbreq = 1;
+                        for(j = 0; j < varp->ndim - 1; j++){
+                            nbreq *= hendp[j] - hstartp[j] + 1;
+                        }
+                        nreq += nbreq;
+
+                        hstartp += varp->ndim * 2;
+                        hendp += varp->ndim * 2;
+                    }
+
+                    start = (MPI_Offset*)malloc(sizeof(MPI_Offset) * varp->ndim * (nreq + 1) * 2);
+                    count = start +  varp->ndim * (nreq + 1);
+
+                    starts = (MPI_Offset**)malloc(sizeof(MPI_Offset*) * varp->ndim * 2 * (nreq + 1));
+                    counts = starts + varp->ndim * (nreq + 1);
+                    for(i = 0; i < nreq + 1; i++){
+                        starts[i] = start + i * varp->ndim;
+                        counts[i] = count + i * varp->ndim;
+                    }
+
+                    for(j = 0; j < varp->ndim - 1; j++){
+                        count[j] = 1;
+                    }
+
+                    nreq = 0;
+                    hstartp = hstart;
+                    hendp = hend;
+                    for(i = 0; i < nblock; i++){
+                        for(j = 0; j < varp->ndim; j++){
+                            starts[nreq][j] = hstartp[j];
+                            counts[nreq][j] = 1;
+                        }
+                        counts[nreq][varp->ndim - 1] = hendp[varp->ndim - 1] - hstartp[varp->ndim - 1] + 1;
+                        nreq++;
+
+                        while(1){
+                            memcpy(starts[nreq], starts[nreq - 1], sizeof(MPI_Offset) * varp->ndim);
+                            memcpy(counts[nreq], counts[nreq - 1], sizeof(MPI_Offset) * varp->ndim);
+                            starts[nreq][varp->ndim - 2]++;
+                            for(j = varp->ndim - 2; j > 0; j--){
+                                if (starts[nreq][j] > hendp[j]){
+                                    starts[nreq][j] = hstartp[j];
+                                    starts[nreq][j - 1]++;
+                                }
+                                else{
+                                    break;
+                                }
+                            }
+                            if (starts[nreq][0] <= hendp[0]){
+                                nreq++;
+                            }
+                            else{
+                                break;
+                            }
+                        }
+
+                        hstartp += varp->ndim * 2;
+                        hendp += varp->ndim * 2;
+                    }
+
+                    sortreq(varp->ndim, nblock, starts, counts);
+
+                    mergereq(varp->ndim, &nblock, starts, counts);
+
+                    nelems = 0;
+                    for(i = 0; i < nblock; i++){
+                        nelems += counts[i][varp->ndim - 1];
+                    }
+
+                    err = ncmpi_iput_varn(varp->fp->ncid, varp->varid, nblock, starts, counts, buf, nelems, type, NULL); CHECK_ERR
                 }
             }
             break;
@@ -447,7 +587,6 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
     if (starts != NULL){
         free(starts);
     }
-
 
     return 0;
 } /* end H5VL_ncmpi_dataset_write() */

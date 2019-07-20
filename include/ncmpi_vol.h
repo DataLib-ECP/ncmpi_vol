@@ -187,6 +187,9 @@ extern MPI_Datatype h5t_to_mpi_type(hid_t type_id);
 extern nc_type h5t_to_nc_type(hid_t type_id);
 extern hid_t nc_to_h5t_type(nc_type type_id);
 extern int nc_type_size(nc_type type_id);
+extern void sortreq(int ndim, hssize_t len, MPI_Offset **starts, MPI_Offset **counts);
+extern int intersect(int ndim, MPI_Offset *sa, MPI_Offset *ca, MPI_Offset *sb);
+extern void mergereq(int ndim, hssize_t *len, MPI_Offset **starts, MPI_Offset **counts);
 
 extern int enter_data_mode(H5VL_ncmpi_file_t *fp);
 extern int enter_define_mode(H5VL_ncmpi_file_t *fp);
