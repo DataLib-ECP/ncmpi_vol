@@ -2,15 +2,58 @@
 
 This library is a prototype implementation of HDF5 VOL that uses PnetCDF for underlying I/O operation.
 It enables applications to access the NetCDF formatted file using HDF5 API.
+The VOL is currently under active development.
 
-## How to build
+## Build PnetCDF
+* VOL is not yet in stable release at the time of the writing
+  + Use develop branch
+* Steps
+  + Download PnetCDF
+  + Run autoconf
+  + Configure PnetCDF
+    + Defualt paramemter is sufficent
+  + Compile and install
+* Example
+    ```
+    ~$ git clone https://github.com/Parallel-NetCDF/PnetCDF.git
+    ~$ cd pnetcdf
+    ~/pnetcdf$ autoreconf -i
+    ~/pnetcdf$ ./configure --prefix=${HOME}/PnetCDF
+    ~/pnetcdf$ make
+    ~/pnetcdf$ make install
+    ```
+
+## Build HDF5 with VOL support
+* VOL is not yet in stable release at the time of the writing
+  + Use develop branch
+* Steps
+  + Clone develop branch from HDF5 repository
+  + Run autoconf
+  + Configure HDF5
+    + Defualt paramemter is sufficent
+  + Compile and install
+* Example
+    ```
+    ~$ git clone https://github.com/live-clones/hdf5.git -b developo
+    ~$ cd hdf5
+    ~/hdf5$ autoreconf -i
+    ~/hdf5$ ./configure --prefix=${HOME}/hdf5_dev
+    ~/hdf5$ make
+    ~/hdf5$ make install
+    ```
+
+## Building the PnetCDF VOL library
 * Requirement
   + C++ compiler
     + Due to used of constant initializer, a C++ compiler is required
-  + HDF5 developer branch
-    + VOL is not yet in stable release at the time of the writing
-* This library uses CMake to manage the build process
+  + HDF5 with VOL support
+    + Provides header that defines the VOL template structure
+  + PnetCDF
+    + This VOL use PnetCDF to access NetCDF files
+  + Cmake utility
+    + This library uses CMake to manage the build process
 * Steps
+  + Clone the PnetCDF VOL repository
   + Create a build directory
   + Run CMake to generate makefile
     + Run CMake in the build folder, set source directory to project directory
@@ -22,20 +65,16 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
       + set DESTDIR to install directory
 * Example
     ```
-    ~/Desktop/ncmpi_vol$ mkdir build
-    ~/Desktop/ncmpi_vol$ cd build
-    ~/Desktop/ncmpi_vol/build$ cmake .. -DPNC_DIR=Path/to/PnetCDF/install -DH5_DIR=Path/to/HDF5/install
-                             ...
-    -- Build files have been written to: /home/khl7265/Desktop/ncmpi_vol/build
-                             ...
-    [100%] Built target create_open
-    Install the project...
-    -- Install configuration: ""
-    -- Installing: /home/khl7265/.local/ncmpi_vol/usr/local/lib/libncmpi_vol.a
-    -- Installing: /home/khl7265/.local/ncmpi_vol/usr/local/include/ncmpi_vol.h
+    ~$ git clone https://github.com/khou2020/ncmpi_vol.git
+    ~$ cd ncmpi_vol
+    ~/ncmpi_vol$ mkdir build
+    ~/ncmpi_vol$ cd build
+    ~/ncmpi_vol/build$ cmake .. -DPNC_DIR${HOME}/PnetCDF -DH5_DIR=${HOME}/hdf5_dev
+    ~/ncmpi_vol/build$ make
+    ~/ncmpi_vol/build$ make install
     ```
 
-## How to use
+## Using the PnetCDF VOL library
 * Include library header
   + include "ncmpi_vol.h" in the source file that registers the PnetCDF VOL with HDF5
   + "ncmpi_vol.h" is located in the include directory under the install path
@@ -48,35 +87,16 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
   + Set PnetCDF in file creation property list to use PnetCDF VOL
   + See example program /examples/create_open.c
 
-## Implmentation
-* File
-* Dataset
-  + Dataset is mapped to NetCDF varaible
-  + HDF5 has no concept of dimensions
-    + The VOL create the corresponding dimension in NetCDF file according to size in dataspace
-    + Dimensions are hidden from the application
-* Attribute
-  + Attributes maps to attribute in NetCDF
-* Group
-  + NetCDF does not have the concept of groups
-  + All objects are directly attached to the file (root group)
-  + The VOL simulate group by prepending the path of the group to the name of objects
-    + Groups are treated as no more than a prefix
-    + Objects can be allocated by full path or by name and the group contains it
-
 ## Limitation
 * Memory space selection is not supported
   + H5S_SEL_ALL is assumed
-* Interleaving file space selection is not supported
-  + The VOL assumes data is accessed in the order they are selected
-  + HDF5 semantic requires that data is accessed in the order they are saved in the file
-* H5DWrite and H5DRead only schedule the I/O operation but does not perform them
+* Different semantic to HDF5 API on H5DWrite and H5DRead
+  + H5DWrite and H5DRead only schedule the I/O operation but does not perform them
   + H5Fflush must be called to complete the actual I/O operation
-  + Before H5Fflush is called, the buffer passed to H5DWrite and H5DRead cannot be used
+  + Before calling H5Fflush, the buffer passed to H5DWrite and H5DRead cannot be used
 * All metadata operation must be called collectively
   + all_coll_metadata_ops must be set in file access property list
   + coll_metadata_write must be set in file access property list
 
 ## Future work
-* Support interleaving selections
 * Support memory space selections
