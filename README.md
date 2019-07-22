@@ -3,13 +3,54 @@
 This library is a prototype implementation of HDF5 VOL that uses PnetCDF for underlying I/O operation.
 It enables applications to access the NetCDF formatted file using HDF5 API.
 
-## How to build
+## Build PnetCDF
+* VOL is not yet in stable release at the time of the writing
+  + Use develop branch
+* Steps
+  + Download PnetCDF
+  + Run autoconf
+  + Configure HDF5
+    + Defualt paramemter is sufficent
+  + Compile and install
+* Example
+    ```
+    git clone https://github.com/live-clones/hdf5.git -b developo
+    cd hdf5
+    autoreconf -i
+    ./configure --prefix=${HOME}/hdf5_dev
+    make
+    make install
+    ```
+
+## Build HDF5 with VOL support
+* VOL is not yet in stable release at the time of the writing
+  + Use develop branch
+* Steps
+  + Clone develop branch from HDF5 repository
+  + Run autoconf
+  + Configure HDF5
+    + Defualt paramemter is sufficent
+  + Compile and install
+* Example
+    ```
+    git clone https://github.com/live-clones/hdf5.git -b developo
+    cd hdf5
+    autoreconf -i
+    ./configure --prefix=${HOME}/hdf5_dev
+    make
+    make install
+    ```
+
+## Building the PnetCDF VOL library
 * Requirement
   + C++ compiler
     + Due to used of constant initializer, a C++ compiler is required
-  + HDF5 developer branch
-    + VOL is not yet in stable release at the time of the writing
-* This library uses CMake to manage the build process
+  + HDF5 with VOL support
+    + Provides header that defines the VOL template structure
+  + PnetCDF
+    + This VOL use PnetCDF to access NetCDF files
+  + Cmake utility
+    + This library uses CMake to manage the build process
 * Steps
   + Create a build directory
   + Run CMake to generate makefile
@@ -35,7 +76,7 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
     -- Installing: /home/khl7265/.local/ncmpi_vol/usr/local/include/ncmpi_vol.h
     ```
 
-## How to use
+## Using the PnetCDF VOL library
 * Include library header
   + include "ncmpi_vol.h" in the source file that registers the PnetCDF VOL with HDF5
   + "ncmpi_vol.h" is located in the include directory under the install path
@@ -47,22 +88,6 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
     + Callback structure is call "H5VL_ncmpi_g"
   + Set PnetCDF in file creation property list to use PnetCDF VOL
   + See example program /examples/create_open.c
-
-## Implmentation
-* File
-* Dataset
-  + Dataset is mapped to NetCDF varaible
-  + HDF5 has no concept of dimensions
-    + The VOL create the corresponding dimension in NetCDF file according to size in dataspace
-    + Dimensions are hidden from the application
-* Attribute
-  + Attributes maps to attribute in NetCDF
-* Group
-  + NetCDF does not have the concept of groups
-  + All objects are directly attached to the file (root group)
-  + The VOL simulate group by prepending the path of the group to the name of objects
-    + Groups are treated as no more than a prefix
-    + Objects can be allocated by full path or by name and the group contains it
 
 ## Limitation
 * Memory space selection is not supported
