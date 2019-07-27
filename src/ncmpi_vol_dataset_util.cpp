@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #define REQSWAP(A,B) {tmp = starts[A]; starts[A] = starts[B]; starts[B] = tmp; tmp = counts[A]; counts[A] = counts[B]; counts[B] = tmp;}
+#define BLKSWAP(A,B) {tmp = starts[A]; starts[A] = starts[B]; starts[B] = tmp;}
 
 static bool lessthan(int ndim, MPI_Offset *a, MPI_Offset *b){
     int i;
@@ -57,6 +58,61 @@ void sortreq(int ndim, hssize_t len, MPI_Offset **starts, MPI_Offset **counts){
 
     sortreq(ndim, j, starts, counts);
     sortreq(ndim, len - j - 1, starts + j + 1, counts + j + 1);
+}
+
+bool hlessthan(int ndim, hsize_t *a, hsize_t *b){
+    int i;
+
+    for(i = 0; i < ndim; i++){
+        if (*a < *b){
+            return true;
+        }
+        else if (*b < *a){
+            return false;
+        }
+        ++a;
+        ++b;
+    }
+
+    return false;
+}
+
+void sortblock(int ndim, hssize_t len, hsize_t **starts){
+    int i, j, p;
+    hsize_t *tmp;
+
+    if (len < 16){
+        j = 1;
+        while(j){
+            j = 0;
+            for(i = 0; i < len - 1; i++){
+                if (hlessthan(ndim, starts[i + 1], starts[i])){
+                    BLKSWAP(i, i + 1)
+                    j = 1;
+                }
+            }
+        }
+        return;
+    }
+
+    p = len / 2;
+    BLKSWAP(p, len - 1);
+    p = len - 1;
+
+    j = 0;
+    for(i = 0; i < len; i++){
+        if (hlessthan(ndim, starts[i], starts[p])){
+            if (i != j){
+                BLKSWAP(i, j)
+            }
+            j++;
+        }
+    }
+
+    BLKSWAP(p, j)
+
+    sortblock(ndim, j, starts);
+    sortblock(ndim, len - j - 1, starts + j + 1);
 }
 
 int intersect(int ndim, MPI_Offset *sa, MPI_Offset *ca, MPI_Offset *sb){

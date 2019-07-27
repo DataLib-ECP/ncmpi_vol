@@ -13,8 +13,14 @@ link_directories(${PNC_DIR}/lib)
 
 set ( PROJECT_LINK_LIBS ncmpi_vol hdf5 hdf5_hl pnetcdf zlib)
 
-add_executable(test_all test.cpp)
-add_executable(debug test.cpp)
+add_executable(test_allvol allvol.cpp)
+add_executable(test_multiblockselection multiblockselection.cpp)
+add_executable(test_multipointselection multipointselection.cpp)
 
-target_link_libraries(test_all ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
-target_link_libraries(debug ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+target_link_libraries(test_allvol ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+target_link_libraries(test_multiblockselection ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+target_link_libraries(test_multipointselection ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+
+ADD_TEST(allvol test_allvol)
+ADD_TEST(multiblockselection test_multiblockselection)
+ADD_TEST(multipointselection test_multipointselection)

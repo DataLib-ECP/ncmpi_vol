@@ -190,6 +190,8 @@ extern int nc_type_size(nc_type type_id);
 extern void sortreq(int ndim, hssize_t len, MPI_Offset **starts, MPI_Offset **counts);
 extern int intersect(int ndim, MPI_Offset *sa, MPI_Offset *ca, MPI_Offset *sb);
 extern void mergereq(int ndim, hssize_t *len, MPI_Offset **starts, MPI_Offset **counts);
+extern void sortblock(int ndim, hssize_t len, hsize_t **starts);
+extern bool hlessthan(int ndim, hsize_t *a, hsize_t *b);
 
 extern int enter_data_mode(H5VL_ncmpi_file_t *fp);
 extern int enter_define_mode(H5VL_ncmpi_file_t *fp);

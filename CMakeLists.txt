@@ -3,6 +3,7 @@ project(ncmpi_vol)
 
 find_package(MPI)
 
+include(CTest)
 
 include_directories(include)
 include_directories(${H5_DIR}/include)
@@ -19,5 +20,8 @@ add_library(ncmpi_vol STATIC ${SOURCES})
 install(TARGETS ncmpi_vol DESTINATION lib)
 install(FILES include/ncmpi_vol.h DESTINATION include)
 
-add_subdirectory(test)
 add_subdirectory(examples)
+
+if(BUILD_TESTING)
+    add_subdirectory(test)
+endif()
