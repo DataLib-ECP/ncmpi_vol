@@ -219,7 +219,12 @@ herr_t H5VL_ncmpi_dataset_read( void *obj, hid_t mem_type_id, hid_t mem_space_id
     if (type == MPI_DATATYPE_NULL) RET_ERR("only native type is supported")
     esize = nc_type_size(h5t_to_nc_type(mem_type_id));
 
-    stype =  H5Sget_select_type(file_space_id);
+    if (file_space_id == H5S_ALL){
+        stype = H5S_SEL_ALL;
+    }
+    else{
+        stype =  H5Sget_select_type(file_space_id);
+    }
 
     switch (stype){
         case H5S_SEL_POINTS:
@@ -408,25 +413,15 @@ herr_t H5VL_ncmpi_dataset_read( void *obj, hid_t mem_type_id, hid_t mem_space_id
         case H5S_SEL_ALL:
             {
                 int i;
-                int ndim;
-                hsize_t *hstart;
-                MPI_Offset nelems;
-
-                hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim);
-
-                ndim = H5Sget_simple_extent_dims(file_space_id, hstart, NULL);
-                if (ndim != varp->ndim){
-                    RET_ERR("File space dimension mismatch");
-                }
+                MPI_Offset dlen, nelems;
 
                 nelems = 1;
                 for(i = 0; i < varp->ndim; i++){
-                    nelems *= hstart[i];
+                    err = ncmpi_inq_dimlen(varp->fp->ncid, varp->dimids[i], &dlen); CHECK_ERR
+                    nelems *= dlen;
                 }
 
                 err = ncmpi_iget_var(varp->fp->ncid, varp->varid, buf, nelems, type, NULL); 
-
-                free(hstart);
             }
             break;
         default:
@@ -462,7 +457,12 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
     if (type == MPI_DATATYPE_NULL) RET_ERR("only native type is supported")
     esize = nc_type_size(h5t_to_nc_type(mem_type_id));
 
-    stype =  H5Sget_select_type(file_space_id);
+    if (file_space_id == H5S_ALL){
+        stype = H5S_SEL_ALL;
+    }
+    else{
+        stype =  H5Sget_select_type(file_space_id);
+    }
 
     switch (stype){
         case H5S_SEL_POINTS:
@@ -651,25 +651,15 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
         case H5S_SEL_ALL:
             {
                 int i;
-                int ndim;
-                hsize_t *hstart;
-                MPI_Offset nelems;
-
-                hstart = (hsize_t*)malloc(sizeof(hsize_t) * varp->ndim);
-
-                ndim = H5Sget_simple_extent_dims(file_space_id, hstart, NULL);
-                if (ndim != varp->ndim){
-                    RET_ERR("File space dimension mismatch");
-                }
+                MPI_Offset dlen, nelems;
 
                 nelems = 1;
                 for(i = 0; i < varp->ndim; i++){
-                    nelems *= hstart[i];
+                    err = ncmpi_inq_dimlen(varp->fp->ncid, varp->dimids[i], &dlen); CHECK_ERR
+                    nelems *= dlen;
                 }
 
                 err = ncmpi_iput_var(varp->fp->ncid, varp->varid, buf, nelems, type, NULL); 
-
-                free(hstart);
             }
             break;
         default:
