@@ -2,6 +2,7 @@
 
 This library is a prototype implementation of HDF5 VOL that uses PnetCDF for underlying I/O operation.
 It enables applications to access the NetCDF formatted file using HDF5 API.
+The VOL is currently under active development.
 
 ## Build PnetCDF
 * VOL is not yet in stable release at the time of the writing
@@ -9,17 +10,17 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
 * Steps
   + Download PnetCDF
   + Run autoconf
-  + Configure HDF5
+  + Configure PnetCDF
     + Defualt paramemter is sufficent
   + Compile and install
 * Example
     ```
-    git clone https://github.com/live-clones/hdf5.git -b developo
-    cd hdf5
-    autoreconf -i
-    ./configure --prefix=${HOME}/hdf5_dev
-    make
-    make install
+    ~$ git clone https://github.com/Parallel-NetCDF/PnetCDF.git
+    ~$ cd pnetcdf
+    ~/pnetcdf$ autoreconf -i
+    ~/pnetcdf$ ./configure --prefix=${HOME}/PnetCDF
+    ~/pnetcdf$ make
+    ~/pnetcdf$ make install
     ```
 
 ## Build HDF5 with VOL support
@@ -33,12 +34,12 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
   + Compile and install
 * Example
     ```
-    git clone https://github.com/live-clones/hdf5.git -b developo
-    cd hdf5
-    autoreconf -i
-    ./configure --prefix=${HOME}/hdf5_dev
-    make
-    make install
+    ~$ git clone https://github.com/live-clones/hdf5.git -b developo
+    ~$ cd hdf5
+    ~/hdf5$ ./autogen
+    ~/hdf5$ ./configure --prefix=${HOME}/hdf5_dev
+    ~/hdf5$ make
+    ~/hdf5$ make install
     ```
 
 ## Building the PnetCDF VOL library
@@ -52,6 +53,7 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
   + Cmake utility
     + This library uses CMake to manage the build process
 * Steps
+  + Clone the PnetCDF VOL repository
   + Create a build directory
   + Run CMake to generate makefile
     + Run CMake in the build folder, set source directory to project directory
@@ -63,17 +65,13 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
       + set DESTDIR to install directory
 * Example
     ```
-    ~/Desktop/ncmpi_vol$ mkdir build
-    ~/Desktop/ncmpi_vol$ cd build
-    ~/Desktop/ncmpi_vol/build$ cmake .. -DPNC_DIR=Path/to/PnetCDF/install -DH5_DIR=Path/to/HDF5/install
-                             ...
-    -- Build files have been written to: /home/khl7265/Desktop/ncmpi_vol/build
-                             ...
-    [100%] Built target create_open
-    Install the project...
-    -- Install configuration: ""
-    -- Installing: /home/khl7265/.local/ncmpi_vol/usr/local/lib/libncmpi_vol.a
-    -- Installing: /home/khl7265/.local/ncmpi_vol/usr/local/include/ncmpi_vol.h
+    ~$ git clone https://github.com/khou2020/ncmpi_vol.git
+    ~$ cd ncmpi_vol
+    ~/ncmpi_vol$ mkdir build
+    ~/ncmpi_vol$ cd build
+    ~/ncmpi_vol/build$ cmake .. -DPNC_DIR${HOME}/PnetCDF -DH5_DIR=${HOME}/hdf5_dev
+    ~/ncmpi_vol/build$ make
+    ~/ncmpi_vol/build$ make install
     ```
 
 ## Using the PnetCDF VOL library
@@ -92,16 +90,13 @@ It enables applications to access the NetCDF formatted file using HDF5 API.
 ## Limitation
 * Memory space selection is not supported
   + H5S_SEL_ALL is assumed
-* Interleaving file space selection is not supported
-  + The VOL assumes data is accessed in the order they are selected
-  + HDF5 semantic requires that data is accessed in the order they are saved in the file
-* H5DWrite and H5DRead only schedule the I/O operation but does not perform them
+* Different semantic to HDF5 API on H5DWrite and H5DRead
+  + H5DWrite and H5DRead only schedule the I/O operation but does not perform them
   + H5Fflush must be called to complete the actual I/O operation
-  + Before H5Fflush is called, the buffer passed to H5DWrite and H5DRead cannot be used
+  + Before calling H5Fflush, the buffer passed to H5DWrite and H5DRead cannot be used
 * All metadata operation must be called collectively
   + all_coll_metadata_ops must be set in file access property list
   + coll_metadata_write must be set in file access property list
 
 ## Future work
-* Support interleaving selections
 * Support memory space selections
