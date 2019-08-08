@@ -185,7 +185,7 @@ void *H5VL_ncmpi_attr_open(void *obj, const H5VL_loc_params_t *loc_params, const
         varid = NC_GLOBAL;
     }
     else{
-        dp = (H5VL_ncmpi_dataset_t*)dp;
+        dp = (H5VL_ncmpi_dataset_t*)obj;
         fp = dp->fp;
         gp = dp->gp;
         ppath = NULL;

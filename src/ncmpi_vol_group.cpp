@@ -135,7 +135,6 @@ void *H5VL_ncmpi_group_open(    void *obj, const H5VL_loc_params_t *loc_params, 
     grup->dxpl_id = dxpl_id;
     grup->fp = fp;
     grup->gp = gp;
-    grup->path = (char*)malloc(strlen(ppath) + strlen(name) + 2);
     if (ppath == NULL){
         grup->path = (char*)malloc(strlen(name) + 1);
         sprintf(grup->path, "%s", name);
@@ -146,7 +145,6 @@ void *H5VL_ncmpi_group_open(    void *obj, const H5VL_loc_params_t *loc_params, 
         sprintf(grup->path, "%s_%s", ppath, name);
         grup->name = grup->path + strlen(ppath) + 1;
     }
-    grup->name = grup->path + strlen(ppath) + 1;
 
     sprintf(tmp, "_group_%s", grup->path);
     err = ncmpi_inq_attid(fp->ncid, NC_GLOBAL, tmp, &i); CHECK_ERRJ
