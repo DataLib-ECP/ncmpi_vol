@@ -43,11 +43,10 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     hsize_t *dims;
     MPI_Offset dlen;
     nc_type type;
-    char tmp[1024];
+    char tmp[PNC_VOL_MAX_NAME];
     char *ppath;
     H5VL_ncmpi_dataset_t *varp;        /* New dataset's info */
     H5VL_ncmpi_file_t *fp;
-    H5VL_ncmpi_group_t *gp;
 
     /* Check arguments */
     if((loc_params->obj_type != H5I_FILE) && (loc_params->obj_type != H5I_GROUP))   RET_ERRN("container not a file or group")
@@ -57,13 +56,11 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
 
     if (loc_params->obj_type == H5I_FILE){
         fp = (H5VL_ncmpi_file_t*)obj;
-        gp = NULL;
         ppath = NULL;
     }
     else{
-        gp = (H5VL_ncmpi_group_t*)obj;
-        fp = gp->fp;
-        ppath = gp->path;
+        fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+        ppath = ((H5VL_ncmpi_group_t*)obj)->path;
     }
 
     // Convert to NC type
@@ -80,7 +77,6 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     varp->dapl_id = dapl_id;
     varp->dxpl_id = dxpl_id;
     varp->fp = fp;
-    varp->gp = gp;
     if (ppath == NULL){
         varp->path = (char*)malloc(strlen(name) + 1);
         sprintf(varp->path, "%s", name);
@@ -137,10 +133,9 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
     hsize_t *dims;
     MPI_Offset dlen;
     nc_type type;
-    char tmp[1024];
+    char tmp[PNC_VOL_MAX_NAME];
     char *ppath;
     H5VL_ncmpi_dataset_t *varp;        /* New dataset's info */
-    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 
     /* Check arguments */
@@ -149,13 +144,31 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
 
     if (loc_params->obj_type == H5I_FILE){
         fp = (H5VL_ncmpi_file_t*)obj;
-        gp = NULL;
         ppath = NULL;
     }
     else{
-        gp = (H5VL_ncmpi_group_t*)obj;
-        fp = gp->fp;
-        ppath = gp->path;
+        fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+        ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+    }
+    if (loc_params->type == H5VL_OBJECT_BY_NAME) { // Only group can house variable 
+        // Try group
+        if (ppath == NULL){
+            sprintf(tmp, "_group_%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(tmp, "_group_%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
+        err = ncmpi_inq_attid(fp->ncid, NC_GLOBAL, tmp, &i);
+        if (err != NC_NOERR){   // Neither, something wrong
+            RET_ERRN("Specified object name not found")
+        }
+
+        if (ppath == NULL){
+            sprintf(tmp, "%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(tmp, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
     }
 
     varp = (H5VL_ncmpi_dataset_t*)malloc(sizeof(H5VL_ncmpi_dataset_t));
@@ -165,7 +178,6 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
     varp->dapl_id = dapl_id;
     varp->dxpl_id = dxpl_id;
     varp->fp = fp;
-    varp->gp = gp;
     if (ppath == NULL){
         varp->path = (char*)malloc(strlen(name) + 1);
         sprintf(varp->path, "%s", name);

@@ -102,6 +102,8 @@ H5_DLL hid_t H5VL_ncmpi_register(void);
 #define PNC_VOL_DATA_MODE 0x1
 #define PNC_VOL_INDEP_MODE 0x2
 
+#define PNC_VOL_MAX_NAME (NC_MAX_NAME + 1)
+
 /************/
 /* Typedefs */
 /************/
@@ -136,10 +138,11 @@ typedef struct H5VL_ncmpi_group_t {
     hid_t gapl_id;
     hid_t dxpl_id;
 
+    int ncid;
+
     char *path;
     char *name;
 
-    struct H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 } H5VL_ncmpi_group_t;
 
@@ -152,13 +155,13 @@ typedef struct H5VL_ncmpi_dataset_t {
     hid_t dxpl_id;
 
     int varid;
+    int ncid;
     int ndim;
     int *dimids;
 
     char *path;
     char *name;
 
-    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 } H5VL_ncmpi_dataset_t;
 
@@ -172,14 +175,13 @@ typedef struct H5VL_ncmpi_attr_t {
 
     int attid;
     int varid;
+    int ncid;
     nc_type type;
     MPI_Offset size;
 
-    char *path;
+    char path[PNC_VOL_MAX_NAME];
     char *name;
 
-    H5VL_ncmpi_dataset_t *dp;
-    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 } H5VL_ncmpi_attr_t;
 

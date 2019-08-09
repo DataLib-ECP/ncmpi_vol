@@ -165,7 +165,12 @@ void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
         }
     }
 
-    err = ncmpi_open(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN
+    if (flags & H5F_ACC_RDWR){
+        err = ncmpi_open(comm, name, NC_64BIT_DATA | NC_WRITE, info, &ncid); CHECK_ERRN
+    }
+    else{
+        err = ncmpi_open(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN
+    }
 
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
@@ -371,7 +376,7 @@ herr_t H5VL_ncmpi_file_specific(void *objp, H5VL_file_specific_t specific_type, 
                 }
 
                 // Enter data mode
-                err = enter_data_mode(fp); CHECK_ERRN
+                err = enter_data_mode(fp); CHECK_ERR
                 err = ncmpi_wait_all(fp->ncid, NC_REQ_ALL, NULL, NULL); CHECK_ERR
                 err = ncmpi_flush(fp->ncid); CHECK_ERR
             }

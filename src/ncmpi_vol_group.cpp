@@ -36,10 +36,9 @@ void *H5VL_ncmpi_group_create(  void *obj, const H5VL_loc_params_t *loc_params, 
                                 hid_t  dxpl_id, void  **req) {
     int err;
     int i;
-    char tmp[1024];
+    char tmp[PNC_VOL_MAX_NAME];
     char *ppath;
     H5VL_ncmpi_group_t *grup;
-    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 
     /* Check arguments */
@@ -48,13 +47,11 @@ void *H5VL_ncmpi_group_create(  void *obj, const H5VL_loc_params_t *loc_params, 
 
     if (loc_params->obj_type == H5I_FILE){
         fp = (H5VL_ncmpi_file_t*)obj;
-        gp = NULL;
         ppath = NULL;
     }
     else {
-        gp = (H5VL_ncmpi_group_t*)obj;
-        fp = gp->fp;
-        ppath = gp->path;
+        fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+        ppath = ((H5VL_ncmpi_group_t*)obj)->path;
     }
 
     // Enter define mode
@@ -67,7 +64,6 @@ void *H5VL_ncmpi_group_create(  void *obj, const H5VL_loc_params_t *loc_params, 
     grup->gapl_id = gapl_id;
     grup->dxpl_id = dxpl_id;
     grup->fp = fp;
-    grup->gp = gp;
     if (ppath == NULL){
         grup->path = (char*)malloc(strlen(name) + 1);
         sprintf(grup->path, "%s", name);
@@ -106,10 +102,9 @@ void *H5VL_ncmpi_group_open(    void *obj, const H5VL_loc_params_t *loc_params, 
                                 hid_t  gapl_id, hid_t  dxpl_id, void  **req) {
     int err;
     int i;
-    char tmp[1024];
+    char tmp[PNC_VOL_MAX_NAME];
     char *ppath;
     H5VL_ncmpi_group_t *grup;
-    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 
     /* Check arguments */
@@ -118,13 +113,31 @@ void *H5VL_ncmpi_group_open(    void *obj, const H5VL_loc_params_t *loc_params, 
 
     if (loc_params->obj_type == H5I_FILE){
         fp = (H5VL_ncmpi_file_t*)obj;
-        gp = NULL;
         ppath = NULL;
     }
     else {
-        gp = (H5VL_ncmpi_group_t*)obj;
-        fp = gp->fp;
-        ppath = gp->path;
+        fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+        ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+    }
+    if (loc_params->type == H5VL_OBJECT_BY_NAME) { // Only group can house variable 
+        // Try group
+        if (ppath == NULL){
+            sprintf(tmp, "_group_%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(tmp, "_group_%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
+        err = ncmpi_inq_attid(fp->ncid, NC_GLOBAL, tmp, &i);
+        if (err != NC_NOERR){   // Neither, something wrong
+            RET_ERRN("Specified object name not found")
+        }
+
+        if (ppath == NULL){
+            sprintf(tmp, "%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(tmp, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
     }
 
     grup = (H5VL_ncmpi_group_t*)malloc(sizeof(H5VL_ncmpi_group_t));
@@ -134,7 +147,6 @@ void *H5VL_ncmpi_group_open(    void *obj, const H5VL_loc_params_t *loc_params, 
     grup->gapl_id = gapl_id;
     grup->dxpl_id = dxpl_id;
     grup->fp = fp;
-    grup->gp = gp;
     if (ppath == NULL){
         grup->path = (char*)malloc(strlen(name) + 1);
         sprintf(grup->path, "%s", name);

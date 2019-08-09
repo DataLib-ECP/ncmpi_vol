@@ -45,11 +45,9 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
     int varid;
     nc_type type;
     char *buf = NULL;
-    char tmp[1024];
+    char path[PNC_VOL_MAX_NAME];
     char *ppath;
     H5VL_ncmpi_attr_t *attp;
-    H5VL_ncmpi_dataset_t *dp;
-    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
 
     /* Check arguments */
@@ -60,24 +58,18 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
 
     if (loc_params->obj_type == H5I_FILE){
         fp = (H5VL_ncmpi_file_t*)obj;
-        gp = NULL;
-        dp = NULL;
-        ppath = NULL;
         varid = NC_GLOBAL;
+        ppath = NULL;
     }
     else if (loc_params->obj_type == H5I_GROUP){
-        gp = (H5VL_ncmpi_group_t*)obj;
-        fp = gp->fp;
-        dp = NULL;
-        ppath = gp->path;
+        fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+        ppath = ((H5VL_ncmpi_group_t*)obj)->path;
         varid = NC_GLOBAL;
     }
     else{
-        dp = (H5VL_ncmpi_dataset_t*)obj;
-        fp = dp->fp;
-        gp = dp->gp;
+        fp = ((H5VL_ncmpi_dataset_t*)obj)->fp;
+        varid = ((H5VL_ncmpi_dataset_t*)obj)->varid;
         ppath = NULL;
-        varid = dp->varid;
     }
 
     // Convert to NC type
@@ -92,18 +84,14 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
     attp->acpl_id = acpl_id;
     attp->aapl_id = aapl_id;
     attp->dxpl_id = dxpl_id;
-    attp->varid = varid;
     attp->type = type;
+    attp->varid = varid;
     attp->fp = fp;
-    attp->gp = gp;
-    attp->dp = dp;
     if (ppath == NULL){
-        attp->path = (char*)malloc(strlen(attr_name) + 1);
         sprintf(attp->path, "%s", attr_name);
         attp->name = attp->path;
     }
     else{
-        attp->path = (char*)malloc(strlen(ppath) + strlen(attr_name) + 2);
         sprintf(attp->path, "%s_%s", ppath, attr_name);
         attp->name = attp->path + strlen(ppath) + 1;
     }
@@ -130,7 +118,6 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
     return (void *)attp;
 
 errout:
-    free(attp->path);
     free(attp);
     if (buf != NULL){
         free(buf);
@@ -159,37 +146,81 @@ void *H5VL_ncmpi_attr_open(void *obj, const H5VL_loc_params_t *loc_params, const
     int varid;
     nc_type type;
     char *buf = NULL;
-    char tmp[1024];
+    char path[PNC_VOL_MAX_NAME];
     char *ppath;
-    H5VL_ncmpi_attr_t *attp;
-    H5VL_ncmpi_dataset_t *dp;
-    H5VL_ncmpi_group_t *gp;
     H5VL_ncmpi_file_t *fp;
+    H5VL_ncmpi_attr_t *attp;
 
     /* Check arguments */
     if((loc_params->obj_type != H5I_FILE) && (loc_params->obj_type != H5I_GROUP) && (loc_params->obj_type != H5I_DATASET))   RET_ERRN("container not a file or group or dataset")
-    if(loc_params->type != H5VL_OBJECT_BY_SELF) RET_ERRN("loc_params->type is not H5VL_OBJECT_BY_SELF")
+    //if(loc_params->type != H5VL_OBJECT_BY_SELF) RET_ERRN("loc_params->type is not H5VL_OBJECT_BY_SELF")
 
-    if (loc_params->obj_type == H5I_FILE){
-        fp = (H5VL_ncmpi_file_t*)obj;
-        gp = NULL;
-        dp = NULL;
-        ppath = NULL;
-        varid = NC_GLOBAL;
+    if (loc_params->type == H5VL_OBJECT_BY_SELF){
+        if (loc_params->obj_type == H5I_FILE){
+            fp = (H5VL_ncmpi_file_t*)obj;
+            varid = NC_GLOBAL;
+            ppath = NULL;
+        }
+        else if (loc_params->obj_type == H5I_GROUP){
+            fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+            ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+            varid = NC_GLOBAL;
+        }
+        else{
+            fp = ((H5VL_ncmpi_dataset_t*)obj)->fp;
+            varid = ((H5VL_ncmpi_dataset_t*)obj)->varid;
+            ppath = NULL;
+        }
     }
-    else if (loc_params->obj_type == H5I_GROUP){
-        gp = (H5VL_ncmpi_group_t*)obj;
-        fp = gp->fp;
-        dp = NULL;
-        ppath = gp->path;
-        varid = NC_GLOBAL;
-    }
-    else{
-        dp = (H5VL_ncmpi_dataset_t*)obj;
-        fp = dp->fp;
-        gp = dp->gp;
-        ppath = NULL;
-        varid = dp->varid;
+    else if (loc_params->type == H5VL_OBJECT_BY_NAME){
+        if (loc_params->obj_type == H5I_FILE){
+            fp = (H5VL_ncmpi_file_t*)obj;
+            ppath = NULL;
+            varid = NC_GLOBAL;
+        }
+        else if (loc_params->obj_type == H5I_GROUP){
+            fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+            ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+            varid = NC_GLOBAL;
+        }
+        else{
+            RET_ERRN("loc_params->type is not H5VL_OBJECT_BY_SELF")
+        }
+
+        // Try variable
+        if (ppath == NULL){
+            sprintf(path, "%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(path, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
+        err = ncmpi_inq_varid(fp->ncid, path, &varid);
+        if (err != NC_NOERR){ // If not, it must be group
+            varid = NC_GLOBAL;
+
+            // Try group
+            if (ppath == NULL){
+                sprintf(path, "_group_%s", loc_params->loc_data.loc_by_name.name);
+            }
+            else{
+                sprintf(path, "_group_%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+            }
+            err = ncmpi_inq_attid(fp->ncid, varid, path, &i);
+            if (err != NC_NOERR){   // Neither, something wrong
+                RET_ERRN("Specified object name not found")
+            }
+
+            if (ppath == NULL){
+                sprintf(path, "%s", loc_params->loc_data.loc_by_name.name);
+            }
+            else{
+                sprintf(path, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+            }
+            ppath = path;
+        }
+        else{
+            ppath = NULL;
+        }
     }
 
     attp = (H5VL_ncmpi_attr_t*)malloc(sizeof(H5VL_ncmpi_attr_t));
@@ -198,16 +229,12 @@ void *H5VL_ncmpi_attr_open(void *obj, const H5VL_loc_params_t *loc_params, const
     attp->aapl_id = aapl_id;
     attp->dxpl_id = dxpl_id;
     attp->varid = varid;
-    attp->fp = fp;
-    attp->gp = gp;
-    attp->dp = dp;
+    attp->fp->ncid = fp->ncid;
     if (ppath == NULL){
-        attp->path = (char*)malloc(strlen(attr_name) + 1);
         sprintf(attp->path, "%s", attr_name);
         attp->name = attp->path;
     }
     else{
-        attp->path = (char*)malloc(strlen(ppath) + strlen(attr_name) + 2);
         sprintf(attp->path, "%s_%s", ppath, attr_name);
         attp->name = attp->path + strlen(ppath) + 1;
     }
@@ -219,7 +246,6 @@ void *H5VL_ncmpi_attr_open(void *obj, const H5VL_loc_params_t *loc_params, const
     return (void *)attp;
 
 errout:
-    free(attp->path);
     free(attp);
     if (buf != NULL){
         free(buf);
@@ -370,9 +396,19 @@ herr_t H5VL_ncmpi_attr_get( void *obj, H5VL_attr_get_t get_type,
                 size_t  buf_size = va_arg(arguments, size_t);
                 char    *buf = va_arg(arguments, char *);
                 ssize_t *ret_val = va_arg(arguments, ssize_t *);
+                int i;
 
                 if(loc_params->type == H5VL_OBJECT_BY_SELF) {
                     H5VL_ncmpi_attr_t *attp = (H5VL_ncmpi_attr_t*)obj;
+
+                    // Name can be changed, we need to update it
+                    err = ncmpi_inq_attname(attp->fp->ncid, attp->varid, attp->attid, attp->path);
+                    for(i = strlen(attp->path); i > -1; i--){
+                        if (attp->path[i] == '_'){
+                            break;
+                        }
+                    }
+                    attp->name = attp->path + i + 1;
 
                     *ret_val = strlen(attp->name);
 
@@ -407,11 +443,71 @@ herr_t H5VL_ncmpi_attr_get( void *obj, H5VL_attr_get_t get_type,
                 else if(loc_params->type == H5VL_OBJECT_BY_IDX) {
                     RET_ERR("loc_params type not supported")
                 }
+                else if(loc_params->type == H5VL_OBJECT_BY_NAME) {
+                    int varid;
+                    char *attr_name = va_arg(arguments, char *);
+                    char *ppath;
+                    char path[PNC_VOL_MAX_NAME];
+                    H5VL_ncmpi_file_t *fp;
+
+                    if (loc_params->obj_type == H5I_FILE){
+                        fp = (H5VL_ncmpi_file_t*)obj;
+                        ppath = NULL;
+                        varid = NC_GLOBAL;
+                    }
+                    else if (loc_params->obj_type == H5I_GROUP){
+                        fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+                        ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+                        varid = NC_GLOBAL;
+                    }
+                    else{
+                        RET_ERR("loc_params->type is not H5VL_OBJECT_BY_SELF")
+                    }
+
+                    // Try variable
+                    if (ppath == NULL){
+                        sprintf(path, "%s", loc_params->loc_data.loc_by_name.name);
+                    }
+                    else{
+                        sprintf(path, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+                    }
+                    err = ncmpi_inq_varid(fp->ncid, path, &varid);
+                    if (err != NC_NOERR){ // If not, it must be group
+                        int i;
+
+                        varid = NC_GLOBAL;
+
+                        // Try group
+                        if (ppath == NULL){
+                            sprintf(path, "_group_%s", loc_params->loc_data.loc_by_name.name);
+                        }
+                        else{
+                            sprintf(path, "_group_%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+                        }
+                        err = ncmpi_inq_attid(fp->ncid, varid, path, &i);
+                        if (err != NC_NOERR){   // Neither, something wrong
+                            RET_ERR("Specified object name not found")
+                        }
+
+                        if (ppath == NULL){
+                            sprintf(path, "%s_%s", loc_params->loc_data.loc_by_name.name, attr_name);
+                        }
+                        else{
+                            sprintf(path, "%s_%s_%s", ppath, loc_params->loc_data.loc_by_name.name, attr_name);
+                        }
+                    }
+                    else{
+                        sprintf(path, "%s", attr_name);
+                    }
+
+                    err = ncmpi_inq_attlen(fp->ncid, varid, path, &dlen); CHECK_ERR
+
+                    ainfo->data_size = dlen; 
+                }
                 else{
                     RET_ERR("loc_params type not supported")
                 }
                 
-
                 break;
             }
 
@@ -423,7 +519,7 @@ herr_t H5VL_ncmpi_attr_get( void *obj, H5VL_attr_get_t get_type,
 
                 err = ncmpi_inq_attlen(attp->fp->ncid, attp->varid, attp->name, &dlen); CHECK_ERR
 
-                *ret = dlen; 
+                *ret = dlen * nc_type_size(attp->type); 
               
                 break;
             }
@@ -448,26 +544,79 @@ herr_t H5VL_ncmpi_attr_get( void *obj, H5VL_attr_get_t get_type,
 herr_t H5VL_ncmpi_attr_specific(    void *obj, const H5VL_loc_params_t *loc_params, H5VL_attr_specific_t specific_type, 
                                     hid_t dxpl_id, void **req, va_list arguments) {
     int err;
+    int varid;
+    char path[PNC_VOL_MAX_NAME];
+    char *ppath;
     H5VL_ncmpi_attr_t *ap = NULL;
-    H5VL_ncmpi_dataset_t *dp = NULL;
-    H5VL_ncmpi_group_t *gp = NULL;
     H5VL_ncmpi_file_t *fp = NULL;
 
-    switch (loc_params->obj_type){
-        case H5I_FILE: 
+    if (loc_params->type == H5VL_OBJECT_BY_SELF){
+        if (loc_params->obj_type == H5I_FILE){
             fp = (H5VL_ncmpi_file_t*)obj;
-            break;
-        case H5I_GROUP: 
-            gp = (H5VL_ncmpi_group_t*)obj;
-            fp = gp->fp;
-            break;
-        case H5I_DATASET: 
-            dp = (H5VL_ncmpi_dataset_t*)obj;
-            gp = dp->gp;
-            fp = dp->fp;
-            break;
-        default:
-            RET_ERR("obj_type not supported")
+            varid = NC_GLOBAL;
+            sprintf(path, "");
+        }
+        else if (loc_params->obj_type == H5I_GROUP){
+            fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+            ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+            sprintf(path, "%s_", ppath);
+        }
+        else{
+            fp = ((H5VL_ncmpi_dataset_t*)obj)->fp;
+            varid = ((H5VL_ncmpi_dataset_t*)obj)->varid;
+            sprintf(path, "");
+        }
+    }
+    else if (loc_params->type == H5VL_OBJECT_BY_NAME){
+        if (loc_params->obj_type == H5I_FILE){
+            fp = (H5VL_ncmpi_file_t*)obj;
+            ppath = NULL;
+            varid = NC_GLOBAL;
+        }
+        else if (loc_params->obj_type == H5I_GROUP){
+            fp = ((H5VL_ncmpi_group_t*)obj)->fp;
+            ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+            varid = NC_GLOBAL;
+        }
+        else{
+            RET_ERR("loc_params->type is not H5VL_OBJECT_BY_SELF")
+        }
+
+        // Try variable
+        if (ppath == NULL){
+            sprintf(path, "%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(path, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
+        err = ncmpi_inq_varid(fp->ncid, path, &varid);
+        if (err != NC_NOERR){ // If not, it must be group
+            int i;
+            
+            varid = NC_GLOBAL;
+
+            // Try group
+            if (ppath == NULL){
+                sprintf(path, "_group_%s", loc_params->loc_data.loc_by_name.name);
+            }
+            else{
+                sprintf(path, "_group_%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+            }
+            err = ncmpi_inq_attid(fp->ncid, varid, path, &i);
+            if (err != NC_NOERR){   // Neither, something wrong
+                RET_ERR("Specified object name not found")
+            }
+
+            if (ppath == NULL){
+                sprintf(path, "%s_", loc_params->loc_data.loc_by_name.name);
+            }
+            else{
+                sprintf(path, "%s_%s_", ppath, loc_params->loc_data.loc_by_name.name);
+            }
+        }
+        else{
+            sprintf(path, "");
+        }
     }
 
     /* Check arguments */
@@ -475,53 +624,19 @@ herr_t H5VL_ncmpi_attr_specific(    void *obj, const H5VL_loc_params_t *loc_para
         case H5VL_ATTR_DELETE:
             {
                 char    *attr_name = va_arg(arguments, char *);
-                int varid;
-                char *path;
-
-                if (dp != NULL){
-                    varid = dp->varid;
-                    path = attr_name;
-                }
-                else{
-                    varid = NC_GLOBAL;
-                    if (gp != NULL){
-                        sprintf(path, "%s_%s", gp->path, attr_name);
-                        path = (char*)malloc(strlen(attr_name) + strlen(gp->path) + 3);
-                        sprintf(path, "%s_%s", gp->path, attr_name);
-                    }
-                    else{
-                        path = attr_name;
-                    }
-                }
-
+                
+                sprintf(path + strlen(path), "%s", attr_name);
                 err = ncmpi_del_att(fp->ncid, varid, path); CHECK_ERR
 
-                if (path != attr_name){
-                    free(path);
-                }
+                break;
             }
         case H5VL_ATTR_EXISTS:
             {
                 const char *attr_name = va_arg(arguments, const char *);
                 htri_t  *ret = va_arg(arguments, htri_t *);
-                int varid, attid;
-                char *path;
-
-                if (dp != NULL){
-                    varid = dp->varid;
-                    path = (char*)attr_name;
-                }
-                else{
-                    varid = NC_GLOBAL;
-                    if (gp != NULL){
-                        path = (char*)malloc(strlen(attr_name) + strlen(gp->path) + 3);
-                        sprintf(path, "%s_%s", gp->path, attr_name);
-                    }
-                    else{
-                        path = (char*)attr_name;
-                    }
-                }
-
+                int attid;
+                
+                sprintf(path + strlen(path), "%s", attr_name);
                 *ret = 1;
                 err = ncmpi_inq_attid(fp->ncid, varid, path, &attid);
                 if (err == NC_ENOTATT){
@@ -530,48 +645,30 @@ herr_t H5VL_ncmpi_attr_specific(    void *obj, const H5VL_loc_params_t *loc_para
                 }
                 CHECK_ERR
 
-                if (path != attr_name){
-                    free(path);
-                }
+                break;
             }
 
         case H5VL_ATTR_ITER:
             {
                RET_ERR("specific_type not supported")
+
+               break;
             }
         /* H5Arename/rename_by_name */
         case H5VL_ATTR_RENAME:
             {
                 const char *old_name  = va_arg(arguments, const char *);
                 const char *new_name  = va_arg(arguments, const char *);
-                int varid;
-                char *oldpath, *newpath;
+                char newpath[PNC_VOL_MAX_NAME];
 
-                if (dp != NULL){
-                    varid = dp->varid;
-                    oldpath = (char*)old_name;
-                    newpath = (char*)newpath;
-                }
-                else{
-                    varid = NC_GLOBAL;
-                    if (gp != NULL){
-                        oldpath = (char*)malloc(strlen(old_name) + strlen(gp->path) + 3);
-                        newpath = (char*)malloc(strlen(new_name) + strlen(gp->path) + 3);
-                        sprintf(oldpath, "%s_%s", gp->path, old_name);
-                        sprintf(newpath, "%s_%s", gp->path, new_name);
-                    }
-                    else{
-                        oldpath = (char*)old_name;
-                        newpath = (char*)newpath;
-                    }
-                }
+                sprintf(newpath, "%s", path);
+                sprintf(path + strlen(path), "%s", old_name);
+                sprintf(newpath + strlen(newpath), "%s", new_name);
 
-                err = ncmpi_rename_att(fp->ncid, varid, oldpath, newpath); CHECK_ERR
+                err = enter_define_mode(fp); CHECK_ERR
+                err = ncmpi_rename_att(fp->ncid, varid, path, newpath); CHECK_ERR
 
-                if (oldpath != old_name){
-                    free(oldpath);
-                    free(newpath);
-                }
+                break;
             }
         default:
             RET_ERR("specific_type not supported")
@@ -610,7 +707,6 @@ herr_t H5VL_ncmpi_attr_optional(void *obj, hid_t dxpl_id, void **req, va_list ar
 herr_t H5VL_ncmpi_attr_close(void *attr, hid_t dxpl_id, void **req) {
     H5VL_ncmpi_attr_t *ap = (H5VL_ncmpi_attr_t*)attr;
 
-    free(ap->path);
     free(ap);
 
     return 0;
