@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
     dims [0]    = np;
     dims [1]    = N;
     dspace_id = H5Screate_simple(2, dims, NULL);   // Dataset space
-    dset_id  = H5Dcreate(file_id, "M", H5T_NATIVE_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  
+    dset_id  = H5Dcreate(file_id, "M", H5T_STD_I32BE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  
     mspace_id = H5Screate_simple(1, dims + 1, NULL);    // Memory space for I/O
 
     // Select region
@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = rank + 1 + i;
     }
-    H5Dwrite(dset_id, H5T_NATIVE_INT, mspace_id, dspace_id, dxpl_id, buf);  
+    H5Dwrite(dset_id, H5T_STD_I32BE, mspace_id, dspace_id, dxpl_id, buf);  
     H5Fflush(file_id, H5F_SCOPE_GLOBAL);
 
     // Close file
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = 0;
     }
-    H5Dread(dset_id, H5T_NATIVE_INT, mspace_id, dspace_id, dxpl_id, buf);  
+    H5Dread(dset_id, H5T_STD_I32BE, mspace_id, dspace_id, dxpl_id, buf);  
     H5Fflush(file_id, H5F_SCOPE_GLOBAL);
 
     for(i = 0; i < N; i++){
