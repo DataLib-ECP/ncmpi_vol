@@ -69,7 +69,7 @@ The VOL is currently under active development.
     ~$ cd ncmpi_vol
     ~/ncmpi_vol$ mkdir build
     ~/ncmpi_vol$ cd build
-    ~/ncmpi_vol/build$ cmake .. -DPNC_DIR${HOME}/PnetCDF -DH5_DIR=${HOME}/hdf5_dev
+    ~/ncmpi_vol/build$ cmake .. -DPNC_DIR=${HOME}/PnetCDF -DH5_DIR=${HOME}/hdf5_dev
     ~/ncmpi_vol/build$ make
     ~/ncmpi_vol/build$ make install
     ```

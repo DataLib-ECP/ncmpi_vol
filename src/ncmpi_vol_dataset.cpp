@@ -50,7 +50,6 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
 
     /* Check arguments */
     if((loc_params->obj_type != H5I_FILE) && (loc_params->obj_type != H5I_GROUP))   RET_ERRN("container not a file or group")
-    if(loc_params->type != H5VL_OBJECT_BY_SELF) RET_ERRN("loc_params->type is not H5VL_OBJECT_BY_SELF")
     if(H5I_DATATYPE != H5Iget_type(type_id))    RET_ERRN("invalid datatype ID")
     if(H5I_DATASPACE != H5Iget_type(space_id))   RET_ERRN("invalid dataspace ID")
 
@@ -61,6 +60,27 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     else{
         fp = ((H5VL_ncmpi_group_t*)obj)->fp;
         ppath = ((H5VL_ncmpi_group_t*)obj)->path;
+    }
+    if (loc_params->type == H5VL_OBJECT_BY_NAME) { // Only group can house variable 
+        // Try group
+        if (ppath == NULL){
+            sprintf(tmp, "_group_%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(tmp, "_group_%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
+        err = ncmpi_inq_attid(fp->ncid, NC_GLOBAL, tmp, &i);
+        if (err != NC_NOERR){   // Neither, something wrong
+            RET_ERRN("Specified object name not found")
+        }
+
+        if (ppath == NULL){
+            sprintf(tmp, "%s", loc_params->loc_data.loc_by_name.name);
+        }
+        else{
+            sprintf(tmp, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
+        }
+        ppath = tmp;
     }
 
     // Convert to NC type
@@ -169,6 +189,7 @@ void* H5VL_ncmpi_dataset_open(void *obj, const H5VL_loc_params_t *loc_params, co
         else{
             sprintf(tmp, "%s_%s", ppath, loc_params->loc_data.loc_by_name.name);
         }
+        ppath = tmp;
     }
 
     varp = (H5VL_ncmpi_dataset_t*)malloc(sizeof(H5VL_ncmpi_dataset_t));

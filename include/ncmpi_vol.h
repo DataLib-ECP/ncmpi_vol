@@ -204,6 +204,7 @@ extern const H5VL_file_class_t H5VL_ncmpi_file_g;
 extern const H5VL_dataset_class_t H5VL_ncmpi_dataset_g;
 extern const H5VL_attr_class_t H5VL_ncmpi_attr_g;
 extern const H5VL_group_class_t H5VL_ncmpi_group_g;
+extern const H5VL_object_class_t H5VL_ncmpi_object_g;
 extern const H5VL_class_t H5VL_ncmpi_g;
 
 #endif

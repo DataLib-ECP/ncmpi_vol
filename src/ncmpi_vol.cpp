@@ -68,13 +68,7 @@ const H5VL_class_t H5VL_ncmpi_g = {
         NULL,                     /* specific */
         NULL,                     /* optional */
     },
-    {                                           /* object_cls */
-        NULL,                       /* open */
-        NULL,                       /* copy */
-        NULL,                        /* get */
-        NULL,                   /* specific */
-        NULL,                   /* optional */
-    },
+    H5VL_ncmpi_object_g,
     {                                           /* request_cls */
         NULL,                      /* wait */
         NULL,                    /* notify */
