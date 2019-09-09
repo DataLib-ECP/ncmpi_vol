@@ -79,29 +79,29 @@ int main(int argc, char **argv) {
 
     // Create file
     file_id = H5Fcreate(file_name, H5F_ACC_TRUNC, H5P_DEFAULT, fapl_id);     
-    fatt_id = H5Acreate(file_id, "FileAtt", H5T_STD_I32BE, dspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    fatt_id = H5Acreate(file_id, "FileAtt", NC_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT);
 
     // Define group
     group_id = H5Gcreate2(file_id, "G", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); 
-    gatt_id = H5Acreate(group_id, "GroupAtt", H5T_STD_I32BE, dspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    gatt_id = H5Acreate(group_id, "GroupAtt", NC_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT);
 
     // Define dataset
-    dset_id  = H5Dcreate(group_id, "D", H5T_STD_I32BE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  
-    datt_id = H5Acreate(dset_id, "DatasetAtt", H5T_STD_I32BE, dspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    dset_id  = H5Dcreate(group_id, "D", NC_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  
+    datt_id = H5Acreate(dset_id, "DatasetAtt", NC_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT);
 
     // Write attribute
     for(i = 0; i < N; i++){
         buf[i] = np + 1 + i;
     }
-    H5Awrite (fatt_id, H5T_STD_I32BE, buf);
+    H5Awrite (fatt_id, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         buf[i] = np + 2 + i;
     }
-    H5Awrite (gatt_id, H5T_STD_I32BE, buf);
+    H5Awrite (gatt_id, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         buf[i] = np + 3 + i;
     }
-    H5Awrite (datt_id, H5T_STD_I32BE, buf);
+    H5Awrite (datt_id, H5T_NATIVE_INT, buf);
 
     // Close handles
     H5Aclose(datt_id);
@@ -127,7 +127,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = 0;
     }
-    H5Aread(fatt_id, H5T_STD_I32BE, buf);
+    H5Aread(fatt_id, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         if (buf[i] != np + 1 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 1 + i, buf[i]);
@@ -163,7 +163,7 @@ int main(int argc, char **argv) {
         printf("Rank %d: Error. Expect new file att name = %s, but got %s\n", rank, "FileAttNew", name);
     }
     
-    H5Aread(gatt_id, H5T_STD_I32BE, buf);
+    H5Aread(gatt_id, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         if (buf[i] != np + 2 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 2 + i, buf[i]);
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
         printf("Rank %d: Error. Expect new group att name = %s, but got %s\n", rank, "GroupAttNew", name);
     }
 
-    H5Aread(datt_id, H5T_STD_I32BE, buf);
+    H5Aread(datt_id, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         if (buf[i] != np + 3 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 3 + i, buf[i]);

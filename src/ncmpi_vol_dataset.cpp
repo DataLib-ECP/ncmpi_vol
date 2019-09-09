@@ -50,7 +50,7 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
 
     /* Check arguments */
     if((loc_params->obj_type != H5I_FILE) && (loc_params->obj_type != H5I_GROUP))   RET_ERRN("container not a file or group")
-    if(H5I_DATATYPE != H5Iget_type(type_id))    RET_ERRN("invalid datatype ID")
+    //if(H5I_DATATYPE != H5Iget_type(type_id))    RET_ERRN("invalid datatype ID")
     if(H5I_DATASPACE != H5Iget_type(space_id))   RET_ERRN("invalid dataspace ID")
 
     if (loc_params->obj_type == H5I_FILE){
@@ -84,7 +84,8 @@ void* H5VL_ncmpi_dataset_create(void *obj, const H5VL_loc_params_t *loc_params,
     }
 
     // Convert to NC type
-    type = h5t_to_nc_type(type_id);
+    //type = h5t_to_nc_type(type_id);
+    type = (nc_type)type_id;
     if (type == NC_NAT) RET_ERRN("only native type is supported")
 
     // Enter define mode
@@ -250,7 +251,7 @@ herr_t H5VL_ncmpi_dataset_read( void *obj, hid_t mem_type_id, hid_t mem_space_id
     // Convert to MPI type
     type = h5t_to_mpi_type(mem_type_id);
     if (type == MPI_DATATYPE_NULL) RET_ERR("only native type is supported")
-    esize = nc_type_size(h5t_to_nc_type(mem_type_id));
+    MPI_Type_size(type, &esize);
 
     if (file_space_id == H5S_ALL){
         stype = H5S_SEL_ALL;
@@ -488,7 +489,7 @@ herr_t H5VL_ncmpi_dataset_write(void *obj, hid_t mem_type_id, hid_t mem_space_id
     // Convert to MPI type
     type = h5t_to_mpi_type(mem_type_id);
     if (type == MPI_DATATYPE_NULL) RET_ERR("only native type is supported")
-    esize = nc_type_size(h5t_to_nc_type(mem_type_id));
+    MPI_Type_size(type, &esize);
 
     if (file_space_id == H5S_ALL){
         stype = H5S_SEL_ALL;

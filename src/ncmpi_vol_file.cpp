@@ -316,17 +316,17 @@ herr_t H5VL_ncmpi_file_get(void *objp, H5VL_file_get_t get_type, hid_t dxpl_id, 
 
                 *ret = 0;
                 if (type & H5F_OBJ_FILE){
-                    if (*ret > max_obj){
+                    if (*ret < max_obj){
                         oid_list[(*ret)++] = fp->ncid << 2; // 4 * id for file
                     }
                 }
                 if (type & H5F_OBJ_DATASET){
-                    for(i = 0; i < nvar && *ret > max_obj; i++){
+                    for(i = 0; i < nvar && *ret < max_obj; i++){
                         oid_list[(*ret)++] = (i << 2) + 1;  // 4 * id + 1 for var
                     }
                 }
                 if (type & H5F_OBJ_ATTR){
-                    for(i = 0; i < natt && *ret > max_obj; i++){
+                    for(i = 0; i < natt && *ret < max_obj; i++){
                         oid_list[(*ret)++] = (i << 2) + 2;  // 4 * id + 1 for att
                     }
                 }

@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
     // Define dataset
     dim = N;
     dspace_id = H5Screate_simple(1, &dim, NULL);   // Dataset space
-    dset_id  = H5Dcreate(file_id, "M", H5T_STD_I32BE, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  
+    dset_id  = H5Dcreate(file_id, "M", NC_INT, dspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);  
 
     /* Write dataset
      * H5Dwrite and H5Dread behaves differently in PnetCDF VOL 
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = rank + 1 + i;
     }
-    H5Dwrite(dset_id, H5T_STD_I32BE, H5S_ALL, H5S_ALL, dxpl_id, buf);  // Schedule varaible write
+    H5Dwrite(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, dxpl_id, buf);  // Schedule varaible write
     H5Fflush(file_id, H5F_SCOPE_GLOBAL);    // Perform actual I/O
 
     // Close handles
@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
      * H5Fflush must be called to perform actual I/O operation
      * Before H5Fflush return, the buffer in all scheduled H5Dwrite and H5Dread operation shall not be accessed
      */ 
-    H5Dread(dset_id, H5T_STD_I32BE, H5S_ALL, H5S_ALL, dxpl_id, buf);  // Schedule varaible write
+    H5Dread(dset_id, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, dxpl_id, buf);  // Schedule varaible write
     H5Fflush(file_id, H5F_SCOPE_GLOBAL);    // Perform actual I/O
     for(i = 0; i < N; i++){
         if (buf[i] != rank + 1 + i){

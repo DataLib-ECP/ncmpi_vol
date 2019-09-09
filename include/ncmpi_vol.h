@@ -104,6 +104,23 @@ H5_DLL hid_t H5VL_ncmpi_register(void);
 
 #define PNC_VOL_MAX_NAME (NC_MAX_NAME + 1)
 
+#ifndef NC_NAT
+#define	NC_NAT		0	/**< Not A Type */
+#define	NC_BYTE		1	/**< signed 1 byte integer */
+#define	NC_CHAR 	2	/**< ISO/ASCII character */
+#define	NC_SHORT 	3	/**< signed 2 byte integer */
+#define	NC_INT		4	/**< signed 4 byte integer */
+#define	NC_LONG		NC_INT	/**< \deprecated required for backward compatibility. */
+#define	NC_FLOAT 	5	/**< single precision floating point number */
+#define	NC_DOUBLE 	6	/**< double precision floating point number */
+#define	NC_UBYTE 	7	/**< unsigned 1 byte int */
+#define	NC_USHORT 	8	/**< unsigned 2-byte int */
+#define	NC_UINT 	9	/**< unsigned 4-byte int */
+#define	NC_INT64 	10	/**< signed 8-byte int */
+#define	NC_UINT64 	11	/**< unsigned 8-byte int */
+#define	NC_STRING 	12	/**< string */
+#endif
+
 /************/
 /* Typedefs */
 /************/

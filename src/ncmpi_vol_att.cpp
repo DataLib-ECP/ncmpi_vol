@@ -53,7 +53,7 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
     /* Check arguments */
     if((loc_params->obj_type != H5I_FILE) && (loc_params->obj_type != H5I_GROUP) && (loc_params->obj_type != H5I_DATASET))   RET_ERRN("container not a file or group or dataset")
     if(loc_params->type != H5VL_OBJECT_BY_SELF) RET_ERRN("loc_params->type is not H5VL_OBJECT_BY_SELF")
-    if(H5I_DATATYPE != H5Iget_type(type_id))    RET_ERRN("invalid datatype ID")
+    //if(H5I_DATATYPE != H5Iget_type(type_id))    RET_ERRN("invalid datatype ID")
     if(H5I_DATASPACE != H5Iget_type(space_id))   RET_ERRN("invalid dataspace ID")
 
     if (loc_params->obj_type == H5I_FILE){
@@ -73,7 +73,8 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
     }
 
     // Convert to NC type
-    type = h5t_to_nc_type(type_id);
+    //type = h5t_to_nc_type(type_id);
+    type = (nc_type)type_id;
     if (type == NC_NAT) RET_ERRN("only native type is supported")
 
     // Enter define mode
@@ -267,26 +268,27 @@ errout:
 herr_t H5VL_ncmpi_attr_read(void *attr, hid_t dtype_id, void *buf,
                             hid_t dxpl_id, void **req) {
     int err;
-    nc_type type;
+    MPI_Datatype type;
     H5VL_ncmpi_attr_t *ap = (H5VL_ncmpi_attr_t*)attr;
 
     /* Check arguments */
     if(H5I_DATATYPE != H5Iget_type(dtype_id))    RET_ERR("invalid datatype ID")
 
-    // Convert to NC type
-    type = h5t_to_nc_type(dtype_id);
-    if (type == NC_NAT) RET_ERR("only native type is supported")
+    // Convert to MPI type
+    type = h5t_to_mpi_type(dtype_id);
+    if (type == MPI_DATATYPE_NULL) RET_ERR("memory type not supported")
 
     // Call PnetCDF
-    if (type == NC_CHAR) err = ncmpi_get_att_text(ap->fp->ncid, ap->varid, ap->path, (char*)buf); 
-    else if (type == NC_SHORT) err = ncmpi_get_att_short(ap->fp->ncid, ap->varid, ap->path, (short*)buf); 
-    else if (type == NC_INT) err = ncmpi_get_att_int(ap->fp->ncid, ap->varid, ap->path, (int*)buf);
-    else if (type == NC_INT64) err = ncmpi_get_att_longlong(ap->fp->ncid, ap->varid, ap->path, (long long*)buf); 
-    else if (type == NC_USHORT) err = ncmpi_get_att_ushort(ap->fp->ncid, ap->varid, ap->path, (unsigned short*)buf); 
-    else if (type == NC_UINT) err = ncmpi_get_att_uint(ap->fp->ncid, ap->varid, ap->path, (unsigned int*)buf); 
-    else if (type == NC_UINT64) err = ncmpi_get_att_ulonglong(ap->fp->ncid, ap->varid, ap->path, (unsigned long long*)buf); 
-    else if (type == NC_FLOAT) err = ncmpi_get_att_float(ap->fp->ncid, ap->varid, ap->path, (float*)buf); 
-    else if (type == NC_DOUBLE) err = ncmpi_get_att_double(ap->fp->ncid, ap->varid, ap->path, (double*)buf); 
+    if (type == MPI_CHAR) err = ncmpi_get_att_text(ap->fp->ncid, ap->varid, ap->path, (char*)buf); 
+    else if (type == MPI_SHORT) err = ncmpi_get_att_short(ap->fp->ncid, ap->varid, ap->path, (short*)buf); 
+    else if ((type == MPI_INT) || (type == MPI_LONG)) err = ncmpi_get_att_int(ap->fp->ncid, ap->varid, ap->path, (int*)buf);
+    else if (type == MPI_LONG_LONG) err = ncmpi_get_att_longlong(ap->fp->ncid, ap->varid, ap->path, (long long*)buf); 
+    else if (type == MPI_UNSIGNED_SHORT) err = ncmpi_get_att_ushort(ap->fp->ncid, ap->varid, ap->path, (unsigned short*)buf); 
+    else if ((type == MPI_UNSIGNED) || (type == MPI_UNSIGNED_LONG)) err = ncmpi_get_att_uint(ap->fp->ncid, ap->varid, ap->path, (unsigned int*)buf); 
+    else if (type == MPI_UNSIGNED_LONG_LONG) err = ncmpi_get_att_ulonglong(ap->fp->ncid, ap->varid, ap->path, (unsigned long long*)buf); 
+    else if (type == MPI_FLOAT) err = ncmpi_get_att_float(ap->fp->ncid, ap->varid, ap->path, (float*)buf); 
+    else if (type == MPI_DOUBLE) err = ncmpi_get_att_double(ap->fp->ncid, ap->varid, ap->path, (double*)buf); 
+    else RET_ERR("memory type not supported")
     CHECK_ERR
 
     return 0;
@@ -312,22 +314,23 @@ herr_t H5VL_ncmpi_attr_write(void *attr, hid_t dtype_id, const void *buf,
     if(H5I_DATATYPE != H5Iget_type(dtype_id))    RET_ERR("invalid datatype ID")
 
     // Convert to NC type
-    type = h5t_to_nc_type(dtype_id);
-    if (type == NC_NAT) RET_ERR("only native type is supported")
+    type = h5t_to_mpi_type(dtype_id);
+    if (type == MPI_DATATYPE_NULL) RET_ERR("memory type not supported")
 
     // Enter define mode
     err = enter_define_mode(ap->fp); CHECK_ERR
 
     // Call PnetCDF
-    if (type == NC_CHAR) err = ncmpi_put_att_text(ap->fp->ncid, ap->varid, ap->path, ap->size, (char*)buf); 
-    else if (type == NC_SHORT) err = ncmpi_put_att_short(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (short*)buf); 
-    else if (type == NC_INT) err = ncmpi_put_att_int(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (int*)buf);
-    else if (type == NC_INT64) err = ncmpi_put_att_longlong(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (long long*)buf); 
-    else if (type == NC_USHORT) err = ncmpi_put_att_ushort(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (unsigned short*)buf); 
-    else if (type == NC_UINT) err = ncmpi_put_att_uint(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (unsigned int*)buf); 
-    else if (type == NC_UINT64) err = ncmpi_put_att_ulonglong(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (unsigned long long*)buf); 
-    else if (type == NC_FLOAT) err = ncmpi_put_att_float(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (float*)buf); 
-    else if (type == NC_DOUBLE) err = ncmpi_put_att_double(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (double*)buf); 
+    if (type == MPI_CHAR) err = ncmpi_put_att_text(ap->fp->ncid, ap->varid, ap->path, ap->size, (char*)buf); 
+    else if (type == MPI_SHORT) err = ncmpi_put_att_short(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (short*)buf); 
+    else if ((type == MPI_INT) || (type == MPI_LONG)) err = ncmpi_put_att_int(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (int*)buf);
+    else if (type == MPI_LONG_LONG) err = ncmpi_put_att_longlong(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (long long*)buf); 
+    else if (type == MPI_UNSIGNED_SHORT) err = ncmpi_put_att_ushort(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (unsigned short*)buf); 
+    else if ((type == MPI_UNSIGNED) || (type == MPI_UNSIGNED_LONG)) err = ncmpi_put_att_uint(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (unsigned int*)buf); 
+    else if (type == MPI_UNSIGNED_LONG_LONG) err = ncmpi_put_att_ulonglong(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (unsigned long long*)buf); 
+    else if (type == MPI_FLOAT) err = ncmpi_put_att_float(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (float*)buf); 
+    else if (type == MPI_DOUBLE) err = ncmpi_put_att_double(ap->fp->ncid, ap->varid, ap->path, ap->type, ap->size, (double*)buf); 
+    else RET_ERR("memory type not supported")
     CHECK_ERR
 
     return 0;

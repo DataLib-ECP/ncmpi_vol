@@ -11,9 +11,9 @@ int main(int argc, char **argv) {
     int i, j;  
     int rank, np;
     const char *file_name;  
-    hid_t types[] = {H5T_STD_I16BE, H5T_STD_I32BE, H5T_STD_I64BE,
-                     H5T_STD_U16BE, H5T_STD_U32BE, H5T_STD_U64BE,
-                     H5T_IEEE_F32BE, H5T_IEEE_F64BE};
+    hid_t types[] = {NC_SHORT, NC_INT, NC_INT64,
+                     NC_USHORT, NC_UINT, NC_UINT64,
+                     NC_FLOAT, NC_DOUBLE};
     hid_t file_id, dspace_id, aspace_id;
     hid_t dset_ids[NT], att_ids[NT];
     hid_t fapl_id, pnc_vol_id, dxpl_id;  
@@ -87,12 +87,12 @@ int main(int argc, char **argv) {
         for(j = 0; j < N; j++){
             buf[j] = rank + 1 + j;
         }
-        H5Dwrite(dset_ids[i], H5T_STD_I32BE, aspace_id, dspace_id, dxpl_id, buf);  
+        H5Dwrite(dset_ids[i], H5T_NATIVE_INT, aspace_id, dspace_id, dxpl_id, buf);  
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
         for(j = 0; j < N; j++){
             buf[j] = np + 1 + j;
         }
-        H5Awrite(att_ids[i], H5T_STD_I32BE, buf);
+        H5Awrite(att_ids[i], H5T_NATIVE_INT, buf);
     }
 
     // Read
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
         for(j = 0; j < N; j++){
             buf[j] = 0;
         }
-        H5Dread(dset_ids[i], H5T_STD_I32BE, aspace_id, dspace_id, dxpl_id, buf);  
+        H5Dread(dset_ids[i], H5T_NATIVE_INT, aspace_id, dspace_id, dxpl_id, buf);  
         H5Fflush(file_id, H5F_SCOPE_GLOBAL);
         for(j = 0; j < N; j++){
             if (buf[j] != rank + 1 + j){
@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
         for(j = 0; j < N; j++){
             buf[j] = 0;
         }
-        H5Aread(att_ids[i], H5T_STD_I32BE, buf);
+        H5Aread(att_ids[i], H5T_NATIVE_INT, buf);
         for(j = 0; j < N; j++){
             if (buf[j] != np + 1 + j){
                 printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, j, np + 1 + j, buf[j]);

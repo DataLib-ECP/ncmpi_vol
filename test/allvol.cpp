@@ -47,12 +47,12 @@ int main(int argc, char **argv) {
     dims [0]    = np;
     dims [1]    = N;
     dataspaceId = H5Screate_simple(2, dims, NULL);   
-    datasetId   = H5Dcreate(group_id,dataset_name,H5T_STD_I32BE,dataspaceId,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);  
+    datasetId   = H5Dcreate(group_id,dataset_name,NC_INT,dataspaceId,H5P_DEFAULT,H5P_DEFAULT,H5P_DEFAULT);  
     memspace_id = H5Screate_simple(1, dims + 1, NULL);
     file_space = H5Dget_space(datasetId);
-    attid_d = H5Acreate(datasetId, "Dataset_Att", H5T_STD_I32BE, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    attid_f = H5Acreate(file_id, "File_Att", H5T_STD_I32BE, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
-    attid_g = H5Acreate(group_id, "Group_Att", H5T_STD_I32BE, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attid_d = H5Acreate(datasetId, "Dataset_Att", NC_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attid_f = H5Acreate(file_id, "File_Att", NC_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
+    attid_g = H5Acreate(group_id, "Group_Att", NC_INT, memspace_id, H5P_DEFAULT, H5P_DEFAULT);
 
     start[0] = rank;
     start[1] = 0;
@@ -66,20 +66,20 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = rank + 1 + i;
     }
-    H5Dwrite(datasetId, H5T_STD_I32BE, memspace_id, file_space, dxplid, buf);  
+    H5Dwrite(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf);  
     H5Fflush(file_id, H5F_SCOPE_GLOBAL);
 
     for(i = 0; i < N; i++){
         buf[i] = np + 1 + i;
     }
-    H5Awrite (attid_d, H5T_STD_I32BE, buf);
-    H5Awrite (attid_g, H5T_STD_I32BE, buf);
-    H5Awrite (attid_f, H5T_STD_I32BE, buf);
+    H5Awrite (attid_d, H5T_NATIVE_INT, buf);
+    H5Awrite (attid_g, H5T_NATIVE_INT, buf);
+    H5Awrite (attid_f, H5T_NATIVE_INT, buf);
 
     for(i = 0; i < N; i++){
         buf[i] = 0;
     }
-    H5Dread(datasetId, H5T_STD_I32BE, memspace_id, file_space, dxplid, buf);  
+    H5Dread(datasetId, H5T_NATIVE_INT, memspace_id, file_space, dxplid, buf);  
     H5Fflush(file_id, H5F_SCOPE_GLOBAL);
     for(i = 0; i < N; i++){
         if (buf[i] != rank + 1 + i){
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = 0;
     }
-    H5Aread(attid_d, H5T_STD_I32BE, buf);
+    H5Aread(attid_d, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         if (buf[i] != np + 1 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 1 + i, buf[i]);
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = 0;
     }
-    H5Aread(attid_g, H5T_STD_I32BE, buf);
+    H5Aread(attid_g, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         if (buf[i] != np + 1 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 1 + i, buf[i]);
@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
     for(i = 0; i < N; i++){
         buf[i] = 0;
     }
-    H5Aread(attid_f, H5T_STD_I32BE, buf);
+    H5Aread(attid_f, H5T_NATIVE_INT, buf);
     for(i = 0; i < N; i++){
         if (buf[i] != np + 1 + i){
             printf("Rank %d: Error. Expect buf[%d] = %d, but got %d\n", rank, i, np + 1 + i, buf[i]);
