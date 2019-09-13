@@ -109,7 +109,7 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
     }
 
     buf = (char*)malloc(attp->size * nc_type_size(type));
-    memset(buf, 0, attp->size * nc_type_size(type));
+    memset(buf, 0, attp->size * nc_type_size(type));    // Possible improvement: use fill value
     err = ncmpi_put_att(fp->ncid, varid, attp->path, type, attp->size, buf); CHECK_ERRJ
     free(buf);
     buf = NULL;

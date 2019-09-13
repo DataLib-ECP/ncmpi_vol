@@ -50,7 +50,7 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
 
     if (herr < 0){
         if (rank == 0){
-            printf("Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n");
+            printf("Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n");    //return error if not set
         }
     }
 
@@ -77,14 +77,16 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
     }
     else{
         if (ret != 1){
-            if (rank == 0){
+            if (rank == 0){ // Every process should say error message
                 printf("Error: coll_metadata_write must be 1\n");
             }
             return NULL;
         }
     }
 
-    err = ncmpi_create(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN
+    err = ncmpi_create(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN  // Pull from property for netcdf format, can we pass format in property list?
+    // Try support clobber flag
+    // Check if H5F_ACC_TRUNC means read or clober
 
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
@@ -271,7 +273,7 @@ herr_t H5VL_ncmpi_file_get(void *objp, H5VL_file_get_t get_type, hid_t dxpl_id, 
                 *ret = outlen;
             }
             break;
-        case H5VL_FILE_GET_OBJ_COUNT:
+        case H5VL_FILE_GET_OBJ_COUNT:   // This is different from default behavior, by default it only counts opened object
             {
                 int err;
                 unsigned type;
@@ -291,7 +293,7 @@ herr_t H5VL_ncmpi_file_get(void *objp, H5VL_file_get_t get_type, hid_t dxpl_id, 
                 if (type & H5F_OBJ_DATASET){
                     (*ret) += nvar;
                 }
-                if (type & H5F_OBJ_ATTR){
+                if (type & H5F_OBJ_ATTR){   // Check if this meeant to inclue var atributes
                     (*ret) += natt;
                 }
             }
