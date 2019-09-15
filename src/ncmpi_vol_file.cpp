@@ -34,7 +34,7 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
     int err;
     herr_t herr;
     hbool_t ret;
-    int ncid;
+    int ncid, cmode;
     int rank;
     MPI_Comm comm;
     MPI_Info info;
@@ -49,42 +49,39 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
     MPI_Comm_rank(comm, &rank);
 
     if (herr < 0){
-        if (rank == 0){
-            printf("Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n");
-        }
+        printf("Rank: %d: Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n", rank);    //return error if not set
     }
 
     herr = H5Pget_all_coll_metadata_ops(fapl_id, &ret);
     if (herr < 0){
-        if (rank == 0){
-            printf("Warrning: all_coll_metadata_ops not set, assuming 1\n");
-        }
+        printf("Rank: %d: Warrning: all_coll_metadata_ops not set, assuming 1\n", rank);
     }
     else{
         if (ret != 1){
-            if (rank == 0){
-                printf("Error: all_coll_metadata_ops must be 1\n");
-            }
+            printf("Rank: %d: Error: all_coll_metadata_ops must be 1\n", rank);
             return NULL;
         }
     }
 
     herr = H5Pget_coll_metadata_write(fapl_id, &ret);
     if (herr < 0){
-        if (rank == 0){
-            printf("Warrning: coll_metadata_write not set, assuming 1\n");
-        }
+        printf("Rank: %d: Warrning: coll_metadata_write not set, assuming 1\n", rank);
     }
     else{
         if (ret != 1){
-            if (rank == 0){
-                printf("Error: coll_metadata_write must be 1\n");
-            }
+            printf("Rank: %d: Error: coll_metadata_write must be 1\n", rank);
             return NULL;
         }
     }
 
-    err = ncmpi_create(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN
+    cmode = 0;
+    if (flags & H5F_ACC_TRUNC){
+        cmode |= NC_CLOBBER;
+    }
+    else if (flags & H5F_ACC_EXCL){
+        cmode |= NC_NOCLOBBER;
+    }
+    err = ncmpi_create(comm, name, cmode, info, &ncid); CHECK_ERRN  // Pull from property for netcdf format, can we pass format in property list?
 
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
@@ -95,8 +92,6 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
     file->dxpl_id = dxpl_id;
     file->rank = rank;
     file->flags = 0;
-    file->path = (char*)malloc(1);
-    file->path[0] = '\0';
  
     return((void *)file);
 } /* end H5VL_ncmpi_file_create() */
@@ -115,7 +110,7 @@ void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
     int err;
     herr_t herr;
     int rank;
-    int ncid;
+    int ncid, omode;
     hbool_t ret;
     MPI_Comm comm;
     MPI_Info info;
@@ -130,47 +125,39 @@ void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
     MPI_Comm_rank(comm, &rank);
 
     if (herr < 0){
-        if (rank == 0){
-            printf("Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n");
-        }
+        printf("Rank: %d: Warrning: mpio fapl not set, using MPI_COMM_WORLD and MPI_INFO_NULL\n", rank);
     }
 
     herr = H5Pget_all_coll_metadata_ops(fapl_id, &ret);
     if (herr < 0){
-        if (rank == 0){
-            printf("Warrning: all_coll_metadata_ops not set, assuming 1\n");
-        }
+        printf("Rank: %d: Warrning: all_coll_metadata_ops not set, assuming 1\n", rank);
     }
     else{
         if (ret != 1){
-            if (rank == 0){
-                printf("Error: all_coll_metadata_ops must be 1\n");
-            }
+            printf("Rank: %d: Error: all_coll_metadata_ops must be 1\n", rank);
             return NULL;
         }
     }
 
     herr = H5Pget_coll_metadata_write(fapl_id, &ret);
     if (herr < 0){
-        if (rank == 0){
-            printf("Warrning: coll_metadata_write not set, assuming 1\n");
-        }
+        printf("Rank: %d: Warrning: coll_metadata_write not set, assuming 1\n", rank);
     }
     else{
         if (ret != 1){
-            if (rank == 0){
-                printf("Error: coll_metadata_write must be 1\n");
-            }
+            printf("Rank: %d: Error: coll_metadata_write must be 1\n", rank);
             return NULL;
         }
     }
 
+    omode = 0;
     if (flags & H5F_ACC_RDWR){
-        err = ncmpi_open(comm, name, NC_64BIT_DATA | NC_WRITE, info, &ncid); CHECK_ERRN
+        omode |= NC_WRITE;
     }
-    else{
-        err = ncmpi_open(comm, name, NC_64BIT_DATA, info, &ncid); CHECK_ERRN
+    else if (flags & H5F_ACC_RDONLY){
+        omode |= NC_NOWRITE;
     }
+    err = ncmpi_open(comm, name, omode, info, &ncid); CHECK_ERRN
 
     file = (H5VL_ncmpi_file_t*)malloc(sizeof(H5VL_ncmpi_file_t));
     file->ncid = ncid;
@@ -181,8 +168,6 @@ void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_
     file->dxpl_id = dxpl_id;
     file->rank = rank;
     file->flags = PNC_VOL_DATA_MODE;
-    file->path = (char*)malloc(1);
-    file->path[0] = '\0';
 
     return((void *)file);
 } /* end H5VL_ncmpi_file_open() */
@@ -435,7 +420,6 @@ herr_t H5VL_ncmpi_file_close(void *file, hid_t dxpl_id, void **req) {
 
     err = ncmpi_close(fp->ncid); CHECK_ERR
 
-    free(fp->path);
     free(fp);
 
     return err;
