@@ -99,6 +99,7 @@ void *H5VL_ncmpi_attr_create(   void *obj, const H5VL_loc_params_t *loc_params, 
 
     ndim = H5Sget_simple_extent_ndims(space_id);
     if (ndim < 0)   RET_ERRN("ndim < 0")
+    if (ndim > 1)   RET_ERRN("Attribute dimension > 1 is not supported")
 
     dims = (hsize_t*)malloc(sizeof(hsize_t) * ndim);
     H5Sget_simple_extent_dims(space_id, dims, NULL);

@@ -138,8 +138,6 @@ typedef struct H5VL_ncmpi_file_t {
     hid_t fapl_id;
     hid_t dxpl_id;
 
-    char *path;
-
     unsigned int flags;
 
     int rank;
