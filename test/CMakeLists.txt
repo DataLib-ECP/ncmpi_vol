@@ -17,13 +17,17 @@ add_executable(test_allvol allvol.cpp)
 add_executable(test_multiblockselection multiblockselection.cpp)
 add_executable(test_multipointselection multipointselection.cpp)
 add_executable(test_mismatchtype mismatchtype.cpp)
+add_executable(test_fileget fileget.cpp)
 
 target_link_libraries(test_allvol ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 target_link_libraries(test_multiblockselection ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 target_link_libraries(test_multipointselection ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
 target_link_libraries(test_mismatchtype ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+target_link_libraries(test_fileget ${PROJECT_LINK_LIBS} ${MPI_C_LIBRARIES} ${MPI_CXX_LIBRARIES})
+
 
 ADD_TEST(allvol test_allvol)
 ADD_TEST(multiblockselection test_multiblockselection)
 ADD_TEST(multipointselection test_multipointselection)
 ADD_TEST(mismatchtype test_mismatchtype)
+ADD_TEST(fileget test_fileget)

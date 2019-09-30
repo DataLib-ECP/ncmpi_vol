@@ -59,7 +59,15 @@ const H5VL_class_t H5VL_ncmpi_g = {
         NULL                     /* close */
     },
     H5VL_ncmpi_file_g,                  /* file_cls */
-    H5VL_ncmpi_group_g,                  /* group_cls */
+    //H5VL_ncmpi_group_g,                  /* group_cls */
+    {
+        NULL,                /* create       */
+        NULL,                  /* open       */
+        NULL,                   /* get          */
+        NULL,              /* specific     */
+        NULL,              /* optional     */
+        NULL,                  /* close        */
+    },
     {                                           /* link_cls */
         NULL,                       /* create */
         NULL,                         /* copy */
