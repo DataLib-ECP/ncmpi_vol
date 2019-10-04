@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
 
     // Collective I/O
     dxpl_id = H5Pcreate (H5P_DATASET_XFER);
-    H5Pset_dxpl_mpio(dxpl_id, H5FD_MPIO_COLLECTIVE);
+    H5Pset_dxpl_mpio(dxpl_id, H5FD_MPIO_INDEPENDENT);
 
     // Create file
     file_id = H5Fcreate(file_name, H5F_ACC_TRUNC, H5P_DEFAULT, fapl_id);     

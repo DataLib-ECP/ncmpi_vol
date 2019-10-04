@@ -15,7 +15,7 @@ LINK_DIRECTORIES(${PNC_DIR}/lib)
 
 file(GLOB SOURCES "src/*.cpp")
 
-add_library(ncmpi_vol STATIC ${SOURCES})
+add_library(ncmpi_vol ${SOURCES})
 
 install(TARGETS ncmpi_vol DESTINATION lib)
 install(FILES include/ncmpi_vol.h DESTINATION include)
