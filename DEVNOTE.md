@@ -62,3 +62,22 @@ A prototype implementation of PnetCDF VOL
 * HDF5 developer branch
   + VOL is not yet in stable release at the time of the writing
   + There can be ongoing change to VOL interface that makes this prototype outdated
+
+## HDF5 limitation
+* Heavy metadata operaiton
+  + Need complex metadata cache machanism
+  + Metadata processing takes considerable time
+* No I/O aggregation
+  + Dwrite and Dread has no non-blocking counterpart
+* Complex, unintutive object traversal
+  + The only way to iterate through ta objects is through a call back function
+  + The only way to access an object directly is through it's name
+* Limitation on MPI collective I/O
+  + I/O must perform on same dataset
+    + Low scalibility on small datasets
+  + No chunk caching
+    + Cache disabled on MPI I/O driver
+  + No collective read on chunked dataset
+    + Decompression can be repetitive
+    
+
