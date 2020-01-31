@@ -8,7 +8,7 @@ void *H5VL_ncmpi_file_create(const char *name, unsigned flags, hid_t fcpl_id, hi
 void *H5VL_ncmpi_file_open(const char *name, unsigned flags, hid_t fapl_id, hid_t dxpl_id, void **req);
 herr_t H5VL_ncmpi_file_get(void *file, H5VL_file_get_t get_type, hid_t dxpl_id, void **req, va_list arguments);
 herr_t H5VL_ncmpi_file_specific(void *file, H5VL_file_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments);
-herr_t H5VL_ncmpi_file_optional(void *file, hid_t dxpl_id, void **req, va_list arguments);
+herr_t H5VL_ncmpi_file_optional(void *file, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments);
 herr_t H5VL_ncmpi_file_close(void *file, hid_t dxpl_id, void **req);
 
 const H5VL_file_class_t H5VL_ncmpi_file_g{
@@ -397,7 +397,7 @@ herr_t H5VL_ncmpi_file_specific(void *objp, H5VL_file_specific_t specific_type, 
  *
  *-------------------------------------------------------------------------
  */
-herr_t H5VL_ncmpi_file_optional(void *file, hid_t dxpl_id, void **req, va_list arguments) {
+herr_t H5VL_ncmpi_file_optional(void *file, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments) {
     int err;
     H5VL_ncmpi_file_t *fp = (H5VL_ncmpi_file_t*)file;
 

@@ -114,3 +114,7 @@ The VOL is currently under active development.
 * HDF5 VOL RFC
   + https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/RFC
   + Require compilation of tex files
+* ExaHDF5 PnetCDF VOL
+  + https://bitbucket.hdfgroup.org/projects/HDF5VOL/repos/pnetcdf-vol/browse
+  + Read only PnetCDF VOL from HDF group
+  + Support selection in memory space

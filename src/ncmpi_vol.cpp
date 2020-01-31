@@ -77,6 +77,7 @@ const H5VL_class_t H5VL_ncmpi_g = {
         NULL,                     /* optional */
     },
     H5VL_ncmpi_object_g,
+    H5VL_ncmpi_introspect_g,
     {                                           /* request_cls */
         NULL,                      /* wait */
         NULL,                    /* notify */
@@ -84,6 +85,17 @@ const H5VL_class_t H5VL_ncmpi_g = {
         NULL,                  /* specific */
         NULL,                  /* optional */
         NULL                       /* free */
+    },
+    {   /* blob_cls */
+        NULL,                      /* put */
+        NULL,                      /* get */
+        NULL,                 /* specific */
+        NULL                                        /* optional */
+    },
+    {   /* token_cls */
+        NULL,                     /* cmp            */
+        NULL,                  /* to_str         */
+        NULL                   /* from_str       */
     },
     NULL                                        /* optional */
 };

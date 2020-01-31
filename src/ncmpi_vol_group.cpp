@@ -9,7 +9,7 @@ void *H5VL_ncmpi_group_create(void *obj, const H5VL_loc_params_t *loc_params, co
 void *H5VL_ncmpi_group_open(void *obj, const H5VL_loc_params_t *loc_params, const char *name, hid_t gapl_id, hid_t dxpl_id, void **req);
 herr_t H5VL_ncmpi_group_get(void *obj, H5VL_group_get_t get_type, hid_t dxpl_id, void **req, va_list arguments);
 herr_t H5VL_ncmpi_group_specific(void *obj, H5VL_group_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments);
-herr_t H5VL_ncmpi_group_optional(void *obj, hid_t dxpl_id, void **req, va_list arguments);
+herr_t H5VL_ncmpi_group_optional(void *obj, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments);
 herr_t H5VL_ncmpi_group_close(void *grp, hid_t dxpl_id, void **req);
 
 const H5VL_group_class_t H5VL_ncmpi_group_g{
@@ -210,7 +210,7 @@ herr_t H5VL_ncmpi_group_specific(   void *obj, H5VL_group_specific_t specific_ty
  *
  *-------------------------------------------------------------------------
  */
-herr_t H5VL_ncmpi_group_optional(   void *obj, hid_t  dxpl_id,
+herr_t H5VL_ncmpi_group_optional(   void *obj, H5VL_file_optional_t opt_type, hid_t  dxpl_id,
                                     void  **req, va_list arguments) {
     return 0;
 } /* end H5VL_ncmpi_group_optional() */

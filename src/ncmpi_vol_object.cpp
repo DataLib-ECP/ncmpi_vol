@@ -8,7 +8,7 @@ void* H5VL_ncmpi_object_open(void *obj, const H5VL_loc_params_t *loc_params, H5I
 herr_t H5VL_ncmpi_object_copy(void *src_obj, const H5VL_loc_params_t *loc_params1, const char *src_name, void *dst_obj, const H5VL_loc_params_t *loc_params2, const char *dst_name, hid_t ocpypl_id, hid_t lcpl_id, hid_t dxpl_id, void **req);
 herr_t H5VL_ncmpi_object_get( void *obj, const H5VL_loc_params_t *loc_params, H5VL_object_get_t get_type, hid_t dxpl_id, void **req, va_list arguments);
 herr_t H5VL_ncmpi_object_specific(void *obj, const H5VL_loc_params_t *loc_params, H5VL_object_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments);
-herr_t H5VL_ncmpi_object_optional(void *obj, hid_t dxpl_id, void **req, va_list arguments);
+herr_t H5VL_ncmpi_object_optional(void *obj, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments);
 
 const H5VL_object_class_t H5VL_ncmpi_object_g{
     H5VL_ncmpi_object_open,                  /* open         */
@@ -230,7 +230,7 @@ herr_t H5VL_ncmpi_object_specific(void *obj, const H5VL_loc_params_t *loc_params
  *
  *-------------------------------------------------------------------------
  */
-herr_t H5VL_ncmpi_object_optional(void *obj, hid_t dxpl_id,
+herr_t H5VL_ncmpi_object_optional(void *obj, H5VL_file_optional_t opt_type, hid_t dxpl_id,
                                     void **req, va_list arguments) {
     return 0;
 } /* end H5VL_ncmpi_object_optional() */

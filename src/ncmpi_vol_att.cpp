@@ -11,7 +11,7 @@ H5_DLL herr_t H5VL_ncmpi_attr_read(void *attr, hid_t dtype_id, void *buf, hid_t 
 H5_DLL herr_t H5VL_ncmpi_attr_write(void *attr, hid_t dtype_id, const void *buf, hid_t dxpl_id, void **req);
 H5_DLL herr_t H5VL_ncmpi_attr_get(void *obj, H5VL_attr_get_t get_type, hid_t dxpl_id, void **req, va_list arguments);
 H5_DLL herr_t H5VL_ncmpi_attr_specific(void *obj, const H5VL_loc_params_t *loc_params, H5VL_attr_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments);
-H5_DLL herr_t H5VL_ncmpi_attr_optional(void *obj, hid_t dxpl_id, void **req, va_list arguments);
+H5_DLL herr_t H5VL_ncmpi_attr_optional(void *obj, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments);
 H5_DLL herr_t H5VL_ncmpi_attr_close(void *attr, hid_t dxpl_id, void **req);
 
 const H5VL_attr_class_t H5VL_ncmpi_attr_g{
@@ -691,7 +691,7 @@ herr_t H5VL_ncmpi_attr_specific(    void *obj, const H5VL_loc_params_t *loc_para
  *
  *-------------------------------------------------------------------------
  */
-herr_t H5VL_ncmpi_attr_optional(void *obj, hid_t dxpl_id, void **req, va_list arguments) {
+herr_t H5VL_ncmpi_attr_optional(void *obj, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments) {
     herr_t ret_value = 0;    /* Return value */
 
     return 0;

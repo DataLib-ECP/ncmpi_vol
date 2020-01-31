@@ -11,7 +11,7 @@ link_directories(${CMAKE_BINARY_DIR})
 link_directories(${H5_DIR}/lib)
 link_directories(${PNC_DIR}/lib)
 
-set ( PROJECT_LINK_LIBS ncmpi_vol hdf5 hdf5_hl pnetcdf zlib dl)
+set ( PROJECT_LINK_LIBS ncmpi_vol hdf5 hdf5_hl pnetcdf dl)
 
 add_executable(create_open create_open.cpp)
 add_executable(var_rw var_rw.cpp)

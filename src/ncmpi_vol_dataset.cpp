@@ -10,7 +10,7 @@ herr_t H5VL_ncmpi_dataset_read(void *dset, hid_t mem_type_id, hid_t mem_space_id
 herr_t H5VL_ncmpi_dataset_write(void *dset, hid_t mem_type_id, hid_t mem_space_id, hid_t file_space_id, hid_t plist_id, const void *buf, void **req);
 herr_t H5VL_ncmpi_dataset_get(void *dset, H5VL_dataset_get_t get_type, hid_t dxpl_id, void **req, va_list arguments);
 herr_t H5VL_ncmpi_dataset_specific(void *obj, H5VL_dataset_specific_t specific_type, hid_t dxpl_id, void **req, va_list arguments);
-herr_t H5VL_ncmpi_dataset_optional(void *obj, hid_t dxpl_id, void **req, va_list arguments);
+herr_t H5VL_ncmpi_dataset_optional(void *obj, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments);
 herr_t H5VL_ncmpi_dataset_close(void *dset, hid_t dxpl_id, void **req);
 
 const H5VL_dataset_class_t H5VL_ncmpi_dataset_g{
@@ -865,7 +865,7 @@ herr_t H5VL_ncmpi_dataset_specific(void *obj, H5VL_dataset_specific_t specific_t
  *
  *-------------------------------------------------------------------------
  */
-herr_t H5VL_ncmpi_dataset_optional(void *obj, hid_t  dxpl_id, void  **req, va_list arguments) {
+herr_t H5VL_ncmpi_dataset_optional(void *obj, H5VL_file_optional_t opt_type, hid_t dxpl_id, void **req, va_list arguments) {
 
     return 0;
 } /* end H5VL_ncmpi_dataset_optional() */
