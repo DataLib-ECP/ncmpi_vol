@@ -1,120 +1,112 @@
-# Summary
+## NCMPI_VOL - an HDF5 VOL Plugin for Accessing NetCDF Classic-based Files
 
-This library is a prototype implementation of HDF5 VOL that uses PnetCDF for underlying I/O operation.
-It enables applications to access the NetCDF formatted file using HDF5 API.
-The VOL is currently under active development.
+This software repository contains source codes implementing an [HDF5](https://www.hdfgroup.org) VOL ([Virtual Object Layer](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/developer_guide/main.pdf)) plugin that allows applications to use HDF5 APIs to read and write NetCDF classic files in parallel. This plugin is built on top of [PnetCDF](https://parallel-netcdf.github.io), a parallel I/O library that provides parallel access to NetCDF files.
 
-## Software Requirements
-* HDF5
-  + VOL is not yet in stable release at the time of the writing
-    + Use develop branch to build the VOL
-* PnetCDF
-  + The VOL uses PnetCDF to handle I/O on NetCDF files
-  + The VOL uses PnetCDF non-blocking API
-    + Version 1.10 and later is recommended
-* C++ compiler
-  + Due to used of constant initializer, a C++ compiler is required
-  + C++ 98 standard is suffice
-+ Cmake utility
-  + This library uses CMake to manage the build process
+### Software Requirements
+* HDF5 [develop branch](https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git)
+  + Note that HDF5 VOL has not yet been released officially at the time of this writing
+* [PnetCDF](https://parallel-netcdf.github.io/wiki/Download.html) version 1.12.0 and later
+* MPI C and C++ compilers
+  + The plugin uses the constant initializer, a C++ compiler supporting std 98 is required
+* Cmake utility
 
-## Building Steps
-* Build PnetCDF
-  + Download PnetCDF
-    + PnetCDF releases can be downloaded from https://parallel-netcdf.github.io/wiki/Download.html
-    + Users can also get PnetCDF form official git repository at https://github.com/Parallel-NetCDF/PnetCDF.git
-  + Run autoconfig if cloned from git repository
-    + configure program is not included in git repository
-  + Configure PnetCDF
-    + Defualt paramemter is sufficent
-  + Compile and install
-  + Example
-      ```
-      ~$ git clone https://github.com/Parallel-NetCDF/PnetCDF.git
-      ~$ cd pnetcdf
-      ~/pnetcdf$ git checkout checkpoint.1.12.0
-      ~/pnetcdf$ autoreconf -i
-      ~/pnetcdf$ ./configure --prefix=${HOME}/PnetCDF
-      ~/pnetcdf$ make
-      ~/pnetcdf$ make install
-      ```
+### Building Steps
+* Build PnetCDF.
+  + Full instructions for building PnetCDF can be found in file `INSTALL` come with all official releases.
+  + Example configure and make commands are given below:
+    ```
+    % cd pnetcdf-1.12.1
+    % ./configure --prefix=${HOME}/PnetCDF
+    % make -j4 install
+    ```
+    The PnetCDF library is now installed under folder `=${HOME}/PnetCDF`.
 * Build HDF5 with VOL support
-  + Clone develop branch from HDF5 repository
-    + HDF5 official git repository is at https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
-    + There is also a clone on git hub at https://github.com/live-clones/hdf5.git
-  + Run autoconf
-    + Use the autogen.sh script provided in the repository instead of "autoreconf command
-  + Configure HDF5
-    + Defualt paramemter is sufficent
-  + Compile and install
-  + Example
-      ```
-      ~$ git clone https://github.com/live-clones/hdf5.git -b developo
-      ~$ cd hdf5
-      ~/hdf5$ ./autogen
-      ~/hdf5$ ./configure --prefix=${HOME}/hdf5_dev
-      ~/hdf5$ make
-      ~/hdf5$ make install
-      ```
-* Building the PnetCDF VOL library
-  + Clone the PnetCDF VOL repository
-  + Create a build directory
-  + Run CMake to generate makefile
-    + Run CMake in the build folder, set source directory to project directory
-    + Set PNC_DIR to PnetCDF install path
-    + Set H5_DIRt o HDF5 install path
-  + Compile the library
-    + make 
-    + make install
-      + set DESTDIR to install directory
-  + Example
-      ```
-      ~$ git clone https://github.com/khou2020/ncmpi_vol.git
-      ~$ cd ncmpi_vol
-      ~/ncmpi_vol$ mkdir build
-      ~/ncmpi_vol$ cd build
-      ~/ncmpi_vol/build$ cmake .. -DPNC_DIR=${HOME}/PnetCDF -DH5_DIR=${HOME}/hdf5_dev
-      ~/ncmpi_vol/build$ make
-      ~/ncmpi_vol/build$ make install
-      ```
+  + Clone the develop branch from HDF5 repository
+  + Run command ./autogen.sh
+  + Configure HDF5 with default settings
+  + Run make install
+  + Example commands are given below.
+    ```
+    % git clone https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
+    % cd hdf5
+    % git checkout develop
+    % ./autogen
+    % ./configure --prefix=${HOME}/HDF5
+    % make -j4 install
+    ```
+    The HD5 library is now installed under folder `=${HOME}/HDF5`.
+* Build this VOL plugin, `ncmpi_vol`
+  + Clone this VOL plugin repository
+  + Configure HDF5 with default settings
+  + Create a new build folder
+  + Run CMake and make
+  + Example commands are given below.
+    ```
+    % git clone https://github.com/DataLib-ECP/ncmpi_vol.git
+    % cd ncmpi_vol
+    % mkdir build
+    % cd build
+    % cmake .. -DPNC_DIR=${HOME}/PnetCDF -DH5_DIR=${HOME}/HDF5 -DCMAKE_INSTALL_PREFIX=${HOME}/NCMPI_VOL
+    % make install
+    ```
+    The VOL plugin library is now installed under folder `${HOME}/NCMPI_VOL`.
 
-## Usage
-* Include library header
-  + include "ncmpi_vol.h" in the source file that registers the PnetCDF VOL with HDF5
-  + "ncmpi_vol.h" is located in the include directory under the install path
-* Link library
-  + link "libncmpi_vol.a"
-  + "libncmpi_vol.a" is located in the lib directory under the install path
-+ Use PnetCDF vol in application
-  + Register PnetCDF VOL callback structure using H5VLregister_connector
-    + Callback structure is call "H5VL_ncmpi_g"
-  + Set PnetCDF in file creation property list to use PnetCDF VOL
-  + See example program /examples/create_open.c
+### Compile user programs that use this VOL plugin
+* Include header file.
+  + Add the following line to your C/C++ source codes.
+    ```
+    #include <ncmpi_vol.h>
+    ```
+  + Header file `ncmpi_vol.h` is located in folder `${HOME}/NCMPI_VOL/include`
+  + Add `-I${HOME}/NCMPI_VOL/include` to your compile command line. For example,
+    ```
+    % mpicc prog.c -o prog.o -I${HOME}/NCMPI_VOL/include
+    ```
+* Library file.
+  + The library file, `libncmpi_vol.a`, is located under folder `${HOME}/NCMPI_VOL/lib`.
+  + Add `-L${HOME}/NCMPI_VOL/lib -lncmpi_vol` to your compile/link command line. For example,
+    ```
+    % mpicc prog.o -o prog -L${HOME}/NCMPI_VOL/lib -lncmpi_vol \
+                           -L${HOME}/HDF5/lib -lhdf5 \
+                           -L${HOME}/PnetCDF/lib -lpnetcdf
+    ```
 
-## Developer Note
-* Limitation
-  + Memory space selection is not supported
-    + H5S_SEL_ALL is assumed
-  + Different semantic to HDF5 API on H5DWrite and H5DRead
-    + H5DWrite and H5DRead only schedule the I/O operation but does not perform them
-    + H5Fflush must be called to complete the actual I/O operation
-    + Before calling H5Fflush, the buffer passed to H5DWrite and H5DRead cannot be used
-  + All metadata operation must be called collectively
-    + all_coll_metadata_ops must be set in file access property list
-    + coll_metadata_write must be set in file access property list
-* Future work
-  + Support memory space selections
+### Use ncmpi_vol plugin in user programs
+  + Register VOL callback structure using `H5VLregister_connector`
+  + Callback structure is named `H5VL_ncmpi_g`
+  + Set a file creation property list to use ncmpi_vol
+  + For example,
+    ```
+    fapl_id = H5Pcreate(H5P_FILE_ACCESS); 
+    H5Pset_fapl_mpio(fapl_id, comm, info);
+    H5Pset_all_coll_metadata_ops(fapl_id, true);
+    H5Pset_coll_metadata_write(fapl_id, true);
+    pnc_vol_id = H5VLregister_connector(&H5VL_ncmpi_g, H5P_DEFAULT);
+    H5Pset_vol(fapl_id, pnc_vol_id, &pnc_vol_info);
+    ```
+  + See a full example program in `examples/create_open.c`
 
-## Reference
-* HDF5 VOL applcation developer manual
-  + https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/developer_guide/main.pdf
-* HDF5 VOL plug-in developer manual
-  + https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/user_guide
-  + Require compilation of tex files
-* HDF5 VOL RFC
-  + https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/RFC
-  + Require compilation of tex files
-* ExaHDF5 PnetCDF VOL
-  + https://bitbucket.hdfgroup.org/projects/HDF5VOL/repos/pnetcdf-vol/browse
-  + Read only PnetCDF VOL from HDF group
-  + Support selection in memory space
+### Developer Note
+* Current limitations
+  + HDF5 memory space selection is not supported
+    + `H5S_SEL_ALL` is assumed
+    + Supporting memory space of noncontiguous user buffers is a future work.
+  + Semantics changed for APIs `H5DWrite` and `H5Dread`
+    + `H5DWrite` and `H5Dread` are now nonblocking. They simply post the requests and users are required to flushed them later.
+    + `H5Fflush` must be called to complete the I/O requests
+    + Once the requests are posted, users are required not to change the contents of user buffers before the call to ` H5Fflush`.
+  + All metadata operations must be called collectively
+    + `H5Pset_all_coll_metadata_ops` must be called to set the file access property list to make metadata operations collective.
+    + `H5Pset_coll_metadata_write` is also required.
+
+### Reference
+* [HDF5 VOL application developer manual](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/developer_guide/main.pdf)
+* [HDF5 VOL plug-in developer manual](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/user_guide)
+* [HDF5 VOL RFC](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/RFC)
+* [ExaHDF5 PnetCDF VOL](https://bitbucket.hdfgroup.org/projects/HDF5VOL/repos/pnetcdf-vol/browse)
+  + Developed by [ExaHDF5](https://sdm.lbl.gov/exahdf5) team
+  + Currently supports read-only operations
+  + Supports selection in memory space
+
+### Project funding supports:
+Ongoing development and maintenance of NCMPI_VOL is supported by the Exascale Computing Project (17-SC-20-SC), a joint project of the U.S. Department of Energy's Office of Science and National Nuclear Security Administration, responsible for delivering a capable exascale ecosystem, including software, applications, and hardware technology, to support the nation's exascale computing imperative.
