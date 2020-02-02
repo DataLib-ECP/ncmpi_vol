@@ -19,7 +19,7 @@ This software repository contains source codes implementing an [HDF5](https://ww
     % ./configure --prefix=${HOME}/PnetCDF
     % make -j4 install
     ```
-    The PnetCDF library is now installed under folder `=${HOME}/PnetCDF`.
+    The PnetCDF library is now installed under folder `${HOME}/PnetCDF`.
 * Build HDF5 with VOL support
   + Clone the develop branch from HDF5 repository
   + Run command ./autogen.sh
@@ -34,7 +34,7 @@ This software repository contains source codes implementing an [HDF5](https://ww
     % ./configure --prefix=${HOME}/HDF5
     % make -j4 install
     ```
-    The HD5 library is now installed under folder `=${HOME}/HDF5`.
+    The HD5 library is now installed under folder `${HOME}/HDF5`.
 * Build this VOL plugin, `ncmpi_vol`
   + Clone this VOL plugin repository
   + Configure HDF5 with default settings
