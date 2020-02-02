@@ -49,17 +49,21 @@ A prototype implementation of PnetCDF VOL
   + The VOL must call PnetCDF mode transition fnctions apropriately based on current operation
   + PnetCDF mode switch API are all collective. As a result, we cannot switch to independent mode if a independent dataset write is called when we are in collective mode
     + By the time we know it is independent, we are already in the independent function call. Some process may not participate.
-  + We keep PnetCDF in independent and data mode all the time.
+  + One solution is to keep PnetCDF in independent and data mode all the time.
     + Transition to other mode only when necessary
     + Switch back right after collective or metadta operation is done
+    + Mopde switching involves file sync that can hinder performance
+  + We use PnetCDF's non-blocking API
+    + Every H5Dwrite and H5Dread only post the I/O operation
+    + The application must call H5Fflush to carry out actual I/O oepration
+      + H5Fflush must be called collectively
+    + The application shall not modify the data buffer before H5Fflush completes
 
 ## Future work
-* Support multiple selection
-  + Current implmentation assums there are only 1 selection 
-* Make it a library
-
-## Future work
-* HDF5 developer branch
+* Support memory space selection
+  + Current implmentation assums the memory space is contiguous
+* Make it a public library
+* Continue update to match the newest VOL interface in HDF5 developer branch
   + VOL is not yet in stable release at the time of the writing
   + There can be ongoing change to VOL interface that makes this prototype outdated
 

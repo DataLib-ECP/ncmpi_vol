@@ -1,17 +1,18 @@
 ## NCMPI_VOL - an HDF5 VOL Plugin for Accessing NetCDF Classic-based Files
 
-This software repository contains source codes implementing an [HDF5](https://www.hdfgroup.org) VOL ([Virtual Object Layer](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/developer_guide/main.pdf)) plugin that allows applications to use HDF5 APIs to read and write NetCDF classic files in parallel. This plugin is built on top of [PnetCDF](https://parallel-netcdf.github.io), a parallel I/O library that provides parallel access to NetCDF files.
+This software repository contains source codes implementing an [HDF5](https://www.hdfgroup.org) Virtual Object Layer ([VOL](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/developer_guide/main.pdf)) plugin that allows applications to use HDF5 APIs to read and write NetCDF classic files in parallel. This plugin is built on top of [PnetCDF](https://parallel-netcdf.github.io), a parallel I/O library that provides parallel access to NetCDF files.
 
 ### Software Requirements
-* HDF5 [develop branch](https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git)
+* [HDF5 develop branch](https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git)
   + Note that HDF5 VOL has not yet been released officially at the time of this writing
+  + Parallel I/O support (--enable-parallel) is required
 * [PnetCDF](https://parallel-netcdf.github.io/wiki/Download.html) version 1.12.0 and later
 * MPI C and C++ compilers
   + The plugin uses the constant initializer, a C++ compiler supporting std 98 is required
 * Cmake utility
 
 ### Building Steps
-* Build PnetCDF.
+* Build PnetCDF
   + Full instructions for building PnetCDF can be found in file `INSTALL` come with all official releases.
   + Example configure and make commands are given below:
     ```
@@ -20,10 +21,10 @@ This software repository contains source codes implementing an [HDF5](https://ww
     % make -j4 install
     ```
     The PnetCDF library is now installed under folder `${HOME}/PnetCDF`.
-* Build HDF5 with VOL support
+* Build HDF5 with VOL and parallel I/O support
   + Clone the develop branch from HDF5 repository
   + Run command ./autogen.sh
-  + Configure HDF5 with default settings
+  + Configure HDF5 with parallel I/O enabled
   + Run make install
   + Example commands are given below.
     ```
@@ -31,7 +32,8 @@ This software repository contains source codes implementing an [HDF5](https://ww
     % cd hdf5
     % git checkout develop
     % ./autogen
-    % ./configure --prefix=${HOME}/HDF5
+    % CC=mpicc ./configure --prefix=${HOME}/HDF5 --enable-parallel
+    % make -j4
     % make -j4 install
     ```
     The HD5 library is now installed under folder `${HOME}/HDF5`.
