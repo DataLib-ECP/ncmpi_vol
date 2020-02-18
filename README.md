@@ -1,4 +1,4 @@
-## NCMPI_VOL - an HDF5 VOL Plugin for Accessing NetCDF Classic-based Files
+## NCMPI_VOL - an HDF5 VOL Plugin for Accessing NetCDF Classic-based Files in Parallel
 
 This software repository contains source codes implementing an [HDF5](https://www.hdfgroup.org) Virtual Object Layer ([VOL](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/developer_guide/main.pdf)) plugin that allows applications to use HDF5 APIs to read and write NetCDF classic files in parallel. This plugin is built on top of [PnetCDF](https://parallel-netcdf.github.io), a parallel I/O library that provides parallel access to NetCDF files.
 
@@ -26,20 +26,18 @@ This software repository contains source codes implementing an [HDF5](https://ww
   + Run command ./autogen.sh
   + Configure HDF5 with parallel I/O enabled
   + Run make install
-  + Example commands are given below.
+  + Example commands are given below. This example will install
+    the HD5 library under folder `${HOME}/HDF5`.
     ```
     % git clone https://bitbucket.hdfgroup.org/scm/hdffv/hdf5.git
     % cd hdf5
     % git checkout develop
     % ./autogen
-    % CC=mpicc ./configure --prefix=${HOME}/HDF5 --enable-parallel
-    % make -j4
+    % ./configure --prefix=${HOME}/HDF5 --enable-parallel CC=mpicc
     % make -j4 install
     ```
-    The HD5 library is now installed under folder `${HOME}/HDF5`.
 * Build this VOL plugin, `ncmpi_vol`
   + Clone this VOL plugin repository
-  + Configure HDF5 with default settings
   + Create a new build folder
   + Run CMake and make
   + Example commands are given below.
@@ -88,8 +86,7 @@ This software repository contains source codes implementing an [HDF5](https://ww
     ```
   + See a full example program in `examples/create_open.c`
 
-### Developer Note
-* Current limitations
+### Current limitations
   + HDF5 memory space selection is not supported
     + `H5S_SEL_ALL` is assumed
     + Supporting memory space of noncontiguous user buffers is a future work.
@@ -101,7 +98,7 @@ This software repository contains source codes implementing an [HDF5](https://ww
     + `H5Pset_all_coll_metadata_ops` must be called to set the file access property list to make metadata operations collective.
     + `H5Pset_coll_metadata_write` is also required.
 
-### Reference
+### References
 * [HDF5 VOL application developer manual](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/developer_guide/main.pdf)
 * [HDF5 VOL plug-in developer manual](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/user_guide)
 * [HDF5 VOL RFC](https://bitbucket.hdfgroup.org/projects/HDFFV/repos/hdf5doc/browse/RFCs/HDF5/VOL/RFC)
